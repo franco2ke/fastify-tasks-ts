@@ -93,6 +93,9 @@ const fileTasksRoutes: FastifyPluginAsyncTypebox = async function (fastify, _opt
         401: Type.Object({
           error: Type.String(),
         }),
+        403: Type.Object({
+          error: Type.String(),
+        }),
         500: Type.Object({
           error: Type.String(),
         }),
@@ -100,7 +103,6 @@ const fileTasksRoutes: FastifyPluginAsyncTypebox = async function (fastify, _opt
       tags: ['Task Imports & Exports'],
     },
     onRequest: [fastify.authenticate.bind(fastify)],
-    // preHandler: (request, reply) => request.isAdmin(reply),
     handler: async function createTasks(request, reply) {
       const { session } = request;
       // Early null check, as TS cannot infer that the authentication hook guarantees session will be there
@@ -108,6 +110,22 @@ const fileTasksRoutes: FastifyPluginAsyncTypebox = async function (fastify, _opt
         reply.code(401);
         return { error: 'Authentication required' };
       }
+
+      // Check import permission
+      const hasPermission = await fastify.auth.api.userHasPermission({
+        body: {
+          userId: session.userId,
+          permissions: {
+            task: ['import'],
+          },
+        },
+      });
+
+      if (!hasPermission.success) {
+        reply.code(403);
+        return { error: 'Forbidden' };
+      }
+
       const parsedTasks = request.body.taskListFile;
 
       if (parsedTasks.length === 0) {
@@ -115,6 +133,7 @@ const fileTasksRoutes: FastifyPluginAsyncTypebox = async function (fastify, _opt
         return { error: 'Empty CSV file uploaded, Upload a populated file' };
       }
 
+      // Users can only import tasks for themselves (security: scoped to own account)
       const normalizedTasks: UploadTask[] = parsedTasks.map((task) => ({
         ...task,
         author_id: session.userId,
@@ -136,9 +155,50 @@ const fileTasksRoutes: FastifyPluginAsyncTypebox = async function (fastify, _opt
       querystring: QueryTaskPaginationSchema,
       tags: ['Task Imports & Exports'],
     },
+    onRequest: [fastify.authenticate.bind(fastify)],
     handler: async function exportTasks(request, reply) {
+      const { session } = request;
+      if (!session) {
+        reply.code(401);
+        return { error: 'Authentication required' };
+      }
+
+      // Check export permission
+      const hasPermission = await fastify.auth.api.userHasPermission({
+        body: {
+          userId: session.userId,
+          permissions: {
+            task: ['export'],
+          },
+        },
+      });
+
+      if (!hasPermission.success) {
+        reply.code(403);
+        return { error: 'Forbidden' };
+      }
+
+      // Check if user can export all tasks (moderators/admins)
+      const canExportAll = await fastify.auth.api.userHasPermission({
+        body: {
+          userId: session.userId,
+          permissions: {
+            task: ['assign'], // Moderators/admins have assign permission
+          },
+        },
+      });
+
+      // Filter by ownership for regular users
+      const queryFilters = canExportAll.success
+        ? request.query
+        : {
+            ...request.query,
+            author_id: request.query.author_id ?? session.userId,
+            assigned_user_id: request.query.assigned_user_id ?? session.userId,
+          };
+
       const { tasks } = await this.tasksRepository.paginate({
-        ...request.query,
+        ...queryFilters,
         page: request.query.page ?? 1,
         limit: request.query.limit ?? 10,
         order: request.query.order ?? 'desc',

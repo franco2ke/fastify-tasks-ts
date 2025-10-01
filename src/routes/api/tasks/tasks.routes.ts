@@ -23,6 +23,9 @@ const plugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
         401: {
           error: Type.String(),
         },
+        403: {
+          error: Type.String(),
+        },
       },
       tags: ['Tasks'],
     },
@@ -31,6 +34,23 @@ const plugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
       if (!request.session) {
         reply.code(401);
         return { error: 'Unauthorized' };
+      }
+
+      // Check permission
+      const hasPermission = await fastify.auth.api.userHasPermission({
+        body: {
+          userId: request.session.userId,
+          permissions: {
+            task: ['create'],
+          },
+        },
+      });
+
+      console.log('😇', 'the user has permissions to create tasks', '🤓');
+
+      if (!hasPermission.success) {
+        reply.code(403);
+        return { error: 'Forbidden' };
       }
 
       if (request.body.title === undefined || request.body.description === undefined) {
@@ -59,19 +79,60 @@ const plugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
       }),
       response: {
         200: TaskSchema,
+        401: Type.Object({ error: Type.String() }),
+        403: Type.Object({ error: Type.String() }),
         404: Type.Object({ message: Type.String() }),
       },
       tags: ['Tasks'],
     },
     onRequest: [fastify.authenticate.bind(fastify)],
-    // preHandler: (request, reply) => request.isAdmin(reply),
     handler: async function (request, reply) {
+      const { session } = request;
+      if (!session) {
+        reply.code(401);
+        return { error: 'Unauthorized' };
+      }
+
+      // Check permission
+      const hasPermission = await fastify.auth.api.userHasPermission({
+        body: {
+          userId: session.userId,
+          permissions: {
+            task: ['read'],
+          },
+        },
+      });
+
+      if (!hasPermission.success) {
+        reply.code(403);
+        return { error: 'Forbidden' };
+      }
+
       const { id } = request.params;
 
       const task = await tasksRepository.findById(id);
       if (!task) {
         reply.code(404);
         return { message: 'Task not found' };
+      }
+
+      // Check ownership for non-privileged users
+      const canReadAll = await fastify.auth.api.userHasPermission({
+        body: {
+          userId: session.userId,
+          permissions: {
+            task: ['assign'], // Moderators/admins have assign permission
+          },
+        },
+      });
+
+      if (
+        !canReadAll.success &&
+        task.author_id !== session.userId &&
+        task.assigned_user_id !== session.userId
+      ) {
+        reply.code(403);
+        return { error: 'Forbidden' };
       }
 
       return task;
@@ -84,13 +145,55 @@ const plugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
       querystring: QueryTaskPaginationSchema,
       response: {
         200: TaskPaginationResultSchema,
+        401: Type.Object({ error: Type.String() }),
+        403: Type.Object({ error: Type.String() }),
       },
       tags: ['Tasks'],
     },
     onRequest: [fastify.authenticate.bind(fastify)],
-    handler: async function (request) {
+    handler: async function (request, reply) {
+      const { session } = request;
+      if (!session) {
+        reply.code(401);
+        return { error: 'Unauthorized' };
+      }
+
+      // Check permission
+      const hasPermission = await fastify.auth.api.userHasPermission({
+        body: {
+          userId: session.userId,
+          permissions: {
+            task: ['read'],
+          },
+        },
+      });
+
+      if (!hasPermission.success) {
+        reply.code(403);
+        return { error: 'Forbidden' };
+      }
+
+      // Check if user can read all tasks (moderators/admins)
+      const canReadAll = await fastify.auth.api.userHasPermission({
+        body: {
+          userId: session.userId,
+          permissions: {
+            task: ['assign'], // Moderators/admins have assign permission
+          },
+        },
+      });
+
+      // Filter by ownership for regular users
+      const queryFilters = canReadAll.success
+        ? request.query
+        : {
+            ...request.query,
+            author_id: request.query.author_id ?? session.userId,
+            assigned_user_id: request.query.assigned_user_id ?? session.userId,
+          };
+
       return await tasksRepository.paginate({
-        ...request.query,
+        ...queryFilters,
         page: request.query.page ?? 1,
         limit: request.query.limit ?? 10,
         order: request.query.order ?? 'desc',
@@ -107,14 +210,62 @@ const plugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
       body: UpdateTaskSchema,
       response: {
         200: TaskSchema,
+        401: Type.Object({ error: Type.String() }),
+        403: Type.Object({ error: Type.String() }),
         404: Type.Object({ message: Type.String() }),
       },
       tags: ['Tasks'],
     },
     onRequest: [fastify.authenticate.bind(fastify)],
-    // preHandler: (request, reply) => request.isAdmin(reply),
     handler: async function (request, reply) {
+      const { session } = request;
+      if (!session) {
+        reply.code(401);
+        return { error: 'Unauthorized' };
+      }
+
+      // Check permission
+      const hasPermission = await fastify.auth.api.userHasPermission({
+        body: {
+          userId: session.userId,
+          permissions: {
+            task: ['update'],
+          },
+        },
+      });
+
+      if (!hasPermission.success) {
+        reply.code(403);
+        return { error: 'Forbidden' };
+      }
+
       const { id } = request.params;
+
+      // Fetch task to check ownership
+      const task = await tasksRepository.findById(id);
+      if (!task) {
+        reply.code(404);
+        return { message: 'Task not found' };
+      }
+
+      // Check ownership for non-admins
+      const canUpdateAll = await fastify.auth.api.userHasPermission({
+        body: {
+          userId: session.userId,
+          permissions: {
+            task: ['assign'], // Admins have assign permission, moderators shouldn't reach here
+          },
+        },
+      });
+
+      if (
+        !canUpdateAll.success &&
+        task.author_id !== session.userId &&
+        task.assigned_user_id !== session.userId
+      ) {
+        reply.code(403);
+        return { error: 'Forbidden' };
+      }
 
       const updatedTask = await tasksRepository.update(id, request.body);
 
@@ -135,14 +286,64 @@ const plugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
       }),
       response: {
         204: Type.Null(),
+        401: Type.Object({ error: Type.String() }),
+        403: Type.Object({ error: Type.String() }),
         404: Type.Object({ message: Type.String() }),
       },
       tags: ['Tasks'],
     },
     onRequest: [fastify.authenticate.bind(fastify)],
-    // preHandler: (request, reply) => request.isAdmin(reply),
     handler: async function (request, reply) {
-      const deleted = await tasksRepository.delete(request.params.id);
+      const { session } = request;
+      if (!session) {
+        reply.code(401);
+        return { error: 'Unauthorized' };
+      }
+
+      // Check permission
+      const hasPermission = await fastify.auth.api.userHasPermission({
+        body: {
+          userId: session.userId,
+          permissions: {
+            task: ['delete'],
+          },
+        },
+      });
+
+      if (!hasPermission.success) {
+        reply.code(403);
+        return { error: 'Forbidden' };
+      }
+
+      const { id } = request.params;
+
+      // Fetch task to check ownership
+      const task = await tasksRepository.findById(id);
+      if (!task) {
+        reply.code(404);
+        return { message: 'Task not found' };
+      }
+
+      // Check ownership for non-admins
+      const canDeleteAll = await fastify.auth.api.userHasPermission({
+        body: {
+          userId: session.userId,
+          permissions: {
+            task: ['assign'], // Admins have assign permission
+          },
+        },
+      });
+
+      if (
+        !canDeleteAll.success &&
+        task.author_id !== session.userId &&
+        task.assigned_user_id !== session.userId
+      ) {
+        reply.code(403);
+        return { error: 'Forbidden' };
+      }
+
+      const deleted = await tasksRepository.delete(id);
 
       if (!deleted) {
         reply.code(404);
@@ -154,7 +355,7 @@ const plugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
     },
   });
 
-  // NOTE: Assign/Unassign Task Route (Moderator-only)
+  // NOTE: Assign/Unassign Task Route (Moderator/Admin-only)
   fastify.post('/:id/assign', {
     schema: {
       params: Type.Object({
@@ -172,8 +373,6 @@ const plugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
       tags: ['Tasks'],
     },
     onRequest: [fastify.authenticate.bind(fastify)],
-    // TODO: Add moderator check when role system is implemented
-    // preHandler: (request, reply) => request.isModerator(reply),
     handler: async function (request, reply) {
       const { session } = request;
       if (!session) {
@@ -181,12 +380,20 @@ const plugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
         return { error: 'Authentication required' };
       }
 
-      // TODO: Replace with proper role check when implemented
-      // For now, assuming all authenticated users can assign tasks
-      // if (!session.user.isModerator) {
-      //   reply.code(403);
-      //   return { error: 'Moderator access required' };
-      // }
+      // Check assign permission (only moderators and admins)
+      const hasPermission = await fastify.auth.api.userHasPermission({
+        body: {
+          userId: session.userId,
+          permissions: {
+            task: ['assign'],
+          },
+        },
+      });
+
+      if (!hasPermission.success) {
+        reply.code(403);
+        return { error: 'Moderator or admin access required' };
+      }
 
       const { id } = request.params;
       const assignedUserId = request.body.assigned_user_id;

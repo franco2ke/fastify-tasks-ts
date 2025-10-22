@@ -52,7 +52,7 @@
     "c8": "^10.1.2",
     "concurrently": "^9.0.0",
     "eslint": "^9.38.0",
-    "eslint-config-love": "^130.0.0",
+    "eslint-config-love": "^133.0.0",
     "fastify-tsconfig": "^3.0.0",
     "prettier": "3.6.2",
     "typescript": "~5.9.3"

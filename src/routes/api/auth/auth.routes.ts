@@ -156,7 +156,7 @@ const authenticationPlugin: FastifyPluginCallbackTypebox = (fastify, _opts, done
 
     handler: async function signInHandler(request, reply) {
       const requestHeaders = fastifyHeadersToStandardHeaders(request);
-      const { headers, response } = await fastify.auth.api.signInEmail({
+      const { headers } = await fastify.auth.api.signInEmail({
         returnHeaders: true,
         body: {
           email: request.body.email, // required
@@ -173,8 +173,29 @@ const authenticationPlugin: FastifyPluginCallbackTypebox = (fastify, _opts, done
         reply.header(key, value);
       });
 
+      // Extract the session cookie from Set-Cookie header
+      // Better Auth uses 'better-auth.session_token' as the cookie name by default
+      const setCookieHeader = headers.get('set-cookie');
+      const sessionCookie = setCookieHeader
+        ?.split(',')
+        .map((c) => c.trim())
+        .find((c) => c.startsWith('better-auth.session_token='));
+
+      // Create new headers with the session cookie for getSession call
+      const sessionHeaders = new Headers();
+      if (sessionCookie !== undefined) {
+        // Extract just the cookie value (remove attributes like Path, HttpOnly, etc.)
+        const cookieValue = sessionCookie.split(';')[0];
+        sessionHeaders.set('cookie', cookieValue);
+      }
+
+      // Get session data using the new session cookie
+      const sessionData = await fastify.auth.api.getSession({
+        headers: sessionHeaders,
+      });
+
       // console.log(headers);
-      return { user: response };
+      return sessionData;
     },
   });
 
@@ -182,11 +203,11 @@ const authenticationPlugin: FastifyPluginCallbackTypebox = (fastify, _opts, done
     handler: async function getSessionHandler(request, reply) {
       const requestHeaders = fastifyHeadersToStandardHeaders(request);
 
-      const data = await fastify.auth.api.getSession({
+      const userData = await fastify.auth.api.getSession({
         headers: requestHeaders,
       });
 
-      return { user: data };
+      return userData;
     },
   });
 

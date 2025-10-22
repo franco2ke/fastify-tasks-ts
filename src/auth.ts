@@ -1,8 +1,9 @@
 import { betterAuth } from 'better-auth';
-import { admin } from 'better-auth/plugins';
+import { admin as adminPlugin } from 'better-auth/plugins';
 import { Pool } from 'pg';
 
 import { betterAuthConfig as allBetterAuthConfigs } from './configurations/config-loader.js';
+import { ac, admin, moderator, user } from './utils/permissions.js';
 
 const { adminOptions, ...betterAuthConfig } = allBetterAuthConfigs;
 
@@ -15,7 +16,17 @@ export const auth = betterAuth({
     password: process.env.POSTGRES_PASSWORD,
     database: process.env.POSTGRES_DATABASE,
   }),
-  plugins: [admin({ ...adminOptions })],
+  plugins: [
+    adminPlugin({
+      ...adminOptions,
+      ac,
+      roles: {
+        user,
+        moderator,
+        admin,
+      },
+    }),
+  ],
   ...betterAuthConfig,
 });
 

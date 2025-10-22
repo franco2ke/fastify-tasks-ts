@@ -3,6 +3,37 @@ import { type FastifyPluginCallbackTypebox, Type } from '@fastify/type-provider-
 import type { FastifyReply, FastifyRequest } from 'fastify';
 
 const authenticationPlugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
+  /**
+   * Sets authentication headers on the reply and retrieves session data
+   * @param headers - Response headers from auth API call
+   * @param reply - Fastify reply object
+   * @returns Session data for the authenticated user
+   */
+  async function setAuthHeadersAndGetSession(headers: Headers, reply: FastifyReply) {
+    // add obtained headers (including Cookie) to the reply headers object
+    headers.forEach((value, key) => {
+      reply.header(key, value);
+    });
+
+    // Extract the session cookie from received response headers
+    // Better Auth uses 'better-auth.session_token' as the cookie name by default
+    const cookieHeaderValue = headers.get('set-cookie');
+
+    // Create new request headers that include the session cookie for getSession api call
+    // Cookie identifies user, allowing better-auth to retrieve their session data
+    const sessionHeaders = new Headers();
+    if (cookieHeaderValue !== null) {
+      sessionHeaders.set('cookie', cookieHeaderValue);
+    }
+
+    // Get session data using the new session cookie
+    const sessionData = await fastify.auth.api.getSession({
+      headers: sessionHeaders,
+    });
+
+    return sessionData;
+  }
+
   async function authHandler(request: FastifyRequest, reply: FastifyReply) {
     try {
       const url = new URL(request.url, `http://${request.headers.host}`);
@@ -121,7 +152,7 @@ const authenticationPlugin: FastifyPluginCallbackTypebox = (fastify, _opts, done
       }),
     },
     handler: async function signUpHandler(request, reply) {
-      const { headers, response } = await fastify.auth.api.signUpEmail({
+      const { headers } = await fastify.auth.api.signUpEmail({
         returnHeaders: true,
         body: {
           name: request.body.name, // required
@@ -130,12 +161,7 @@ const authenticationPlugin: FastifyPluginCallbackTypebox = (fastify, _opts, done
         },
       });
 
-      // Set cookies from auth response headers
-      headers.forEach((value, key) => {
-        reply.header(key, value);
-      });
-
-      return { user: response };
+      return await setAuthHeadersAndGetSession(headers, reply);
     },
   });
 
@@ -168,34 +194,7 @@ const authenticationPlugin: FastifyPluginCallbackTypebox = (fastify, _opts, done
         headers: requestHeaders,
       });
 
-      // Set cookies from auth response headers
-      headers.forEach((value, key) => {
-        reply.header(key, value);
-      });
-
-      // Extract the session cookie from Set-Cookie header
-      // Better Auth uses 'better-auth.session_token' as the cookie name by default
-      const setCookieHeader = headers.get('set-cookie');
-      const sessionCookie = setCookieHeader
-        ?.split(',')
-        .map((c) => c.trim())
-        .find((c) => c.startsWith('better-auth.session_token='));
-
-      // Create new headers with the session cookie for getSession call
-      const sessionHeaders = new Headers();
-      if (sessionCookie !== undefined) {
-        // Extract just the cookie value (remove attributes like Path, HttpOnly, etc.)
-        const cookieValue = sessionCookie.split(';')[0];
-        sessionHeaders.set('cookie', cookieValue);
-      }
-
-      // Get session data using the new session cookie
-      const sessionData = await fastify.auth.api.getSession({
-        headers: sessionHeaders,
-      });
-
-      // console.log(headers);
-      return sessionData;
+      return await setAuthHeadersAndGetSession(headers, reply);
     },
   });
 

@@ -3,6 +3,37 @@ import { type FastifyPluginCallbackTypebox, Type } from '@fastify/type-provider-
 import type { FastifyReply, FastifyRequest } from 'fastify';
 
 const authenticationPlugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
+  /**
+   * Sets authentication headers on the reply and retrieves session data
+   * @param headers - Response headers from auth API call
+   * @param reply - Fastify reply object
+   * @returns Session data for the authenticated user
+   */
+  async function setAuthHeadersAndGetSession(headers: Headers, reply: FastifyReply) {
+    // add obtained headers (including Cookie) to the reply headers object
+    headers.forEach((value, key) => {
+      reply.header(key, value);
+    });
+
+    // Extract the session cookie from received response headers
+    // Better Auth uses 'better-auth.session_token' as the cookie name by default
+    const cookieHeaderValue = headers.get('set-cookie');
+
+    // Create new request headers that include the session cookie for getSession api call
+    // Cookie identifies user, allowing better-auth to retrieve their session data
+    const sessionHeaders = new Headers();
+    if (cookieHeaderValue !== null) {
+      sessionHeaders.set('cookie', cookieHeaderValue);
+    }
+
+    // Get session data using the new session cookie
+    const sessionData = await fastify.auth.api.getSession({
+      headers: sessionHeaders,
+    });
+
+    return sessionData;
+  }
+
   async function authHandler(request: FastifyRequest, reply: FastifyReply) {
     try {
       const url = new URL(request.url, `http://${request.headers.host}`);
@@ -105,10 +136,6 @@ const authenticationPlugin: FastifyPluginCallbackTypebox = (fastify, _opts, done
   fastify.post('/sign-up/email', {
     schema: {
       body: Type.Object({
-        name: Type.String({
-          minLength: 1,
-          maxLength: 255,
-        }),
         email: Type.String({
           format: 'email',
           minLength: 1,
@@ -121,21 +148,16 @@ const authenticationPlugin: FastifyPluginCallbackTypebox = (fastify, _opts, done
       }),
     },
     handler: async function signUpHandler(request, reply) {
-      const { headers, response } = await fastify.auth.api.signUpEmail({
+      const { headers } = await fastify.auth.api.signUpEmail({
         returnHeaders: true,
         body: {
-          name: request.body.name, // required
+          name: '', // required
           email: request.body.email, // required
           password: request.body.password, // required
         },
       });
 
-      // Set cookies from auth response headers
-      headers.forEach((value, key) => {
-        reply.header(key, value);
-      });
-
-      return { user: response };
+      return await setAuthHeadersAndGetSession(headers, reply);
     },
   });
 
@@ -156,7 +178,7 @@ const authenticationPlugin: FastifyPluginCallbackTypebox = (fastify, _opts, done
 
     handler: async function signInHandler(request, reply) {
       const requestHeaders = fastifyHeadersToStandardHeaders(request);
-      const { headers, response } = await fastify.auth.api.signInEmail({
+      const { headers } = await fastify.auth.api.signInEmail({
         returnHeaders: true,
         body: {
           email: request.body.email, // required
@@ -168,13 +190,7 @@ const authenticationPlugin: FastifyPluginCallbackTypebox = (fastify, _opts, done
         headers: requestHeaders,
       });
 
-      // Set cookies from auth response headers
-      headers.forEach((value, key) => {
-        reply.header(key, value);
-      });
-
-      // console.log(headers);
-      return { user: response };
+      return await setAuthHeadersAndGetSession(headers, reply);
     },
   });
 
@@ -182,11 +198,11 @@ const authenticationPlugin: FastifyPluginCallbackTypebox = (fastify, _opts, done
     handler: async function getSessionHandler(request, reply) {
       const requestHeaders = fastifyHeadersToStandardHeaders(request);
 
-      const data = await fastify.auth.api.getSession({
+      const userData = await fastify.auth.api.getSession({
         headers: requestHeaders,
       });
 
-      return { user: data };
+      return userData;
     },
   });
 

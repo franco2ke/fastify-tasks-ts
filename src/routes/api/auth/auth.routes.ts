@@ -136,10 +136,6 @@ const authenticationPlugin: FastifyPluginCallbackTypebox = (fastify, _opts, done
   fastify.post('/sign-up/email', {
     schema: {
       body: Type.Object({
-        name: Type.String({
-          minLength: 1,
-          maxLength: 255,
-        }),
         email: Type.String({
           format: 'email',
           minLength: 1,
@@ -155,7 +151,7 @@ const authenticationPlugin: FastifyPluginCallbackTypebox = (fastify, _opts, done
       const { headers } = await fastify.auth.api.signUpEmail({
         returnHeaders: true,
         body: {
-          name: request.body.name, // required
+          name: '', // required
           email: request.body.email, // required
           password: request.body.password, // required
         },

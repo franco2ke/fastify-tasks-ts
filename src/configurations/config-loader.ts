@@ -108,6 +108,7 @@ interface BetterAuthConfig {
       updatedAt: string;
     };
   };
+  trustedOrigins?: string[];
 }
 
 export const betterAuthConfig: BetterAuthConfig = {
@@ -168,8 +169,8 @@ export const betterAuthConfig: BetterAuthConfig = {
       userAgent: 'user_agent',
       userId: 'user_id',
     },
-    expiresIn: 604800,
-    updateAge: 86400,
+    expiresIn: 600,
+    updateAge: 360,
     disableSessionRefresh: false,
     cookieCache: {
       enabled: false, // Enable caching session in cookie (default: `false`)
@@ -199,6 +200,7 @@ export const betterAuthConfig: BetterAuthConfig = {
       updatedAt: 'updated_at',
     },
   },
+  trustedOrigins: ['http://localhost:3000', 'http://localhost:5173'],
 };
 
 const configLoader: FastifyPluginAsyncTypebox = async function (fastify, _opts) {

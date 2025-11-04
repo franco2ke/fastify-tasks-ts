@@ -55,7 +55,6 @@ interface BetterAuthConfig {
     };
   };
   basePath: string;
-  trustedOrigins: string[];
   emailAndPassword: {
     enabled: boolean;
     requireEmailVerification: boolean;
@@ -109,7 +108,7 @@ interface BetterAuthConfig {
       updatedAt: string;
     };
   };
-  trustedOrigins?: string[];
+  trustedOrigins: string[];
 }
 
 export const betterAuthConfig: BetterAuthConfig = {
@@ -148,7 +147,6 @@ export const betterAuthConfig: BetterAuthConfig = {
     },
   },
   basePath: '/api/auth',
-  trustedOrigins: ['http://localhost:5173'],
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: false,
@@ -202,7 +200,7 @@ export const betterAuthConfig: BetterAuthConfig = {
       updatedAt: 'updated_at',
     },
   },
-  trustedOrigins: ['http://localhost:3000', 'http://localhost:5173'],
+  trustedOrigins: ['http://localhost:5173'],
 };
 
 const configLoader: FastifyPluginAsyncTypebox = async function (fastify, _opts) {

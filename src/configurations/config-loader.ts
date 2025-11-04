@@ -55,6 +55,7 @@ interface BetterAuthConfig {
     };
   };
   basePath: string;
+  trustedOrigins: string[];
   emailAndPassword: {
     enabled: boolean;
     requireEmailVerification: boolean;
@@ -146,6 +147,7 @@ export const betterAuthConfig: BetterAuthConfig = {
     },
   },
   basePath: '/api/auth',
+  trustedOrigins: ['http://localhost:5173'],
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: false,

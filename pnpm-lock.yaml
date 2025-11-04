@@ -18,8 +18,8 @@ importers:
         specifier: ^5.0.3
         version: 5.0.3
       '@fastify/multipart':
-        specifier: ^9.2.1
-        version: 9.2.1
+        specifier: ^9.3.0
+        version: 9.3.0
       '@fastify/postgres':
         specifier: ^6.0.2
         version: 6.0.2(pg@8.16.3)
@@ -386,8 +386,8 @@ packages:
   '@fastify/merge-json-schemas@0.2.1':
     resolution: {integrity: sha512-OA3KGBCy6KtIvLf8DINC5880o5iBlDX4SxzLQS8HorJAbqluzLRn80UXU0bxZn7UOFhFgpRJDasfwn9nG4FG4A==}
 
-  '@fastify/multipart@9.2.1':
-    resolution: {integrity: sha512-U4221XDMfzCUtfzsyV1/PkR4MNgKI0158vUUyn/oF2Tl6RxMc+N7XYLr5fZXQiEC+Fmw5zFaTjxsTGTgtDtK+g==}
+  '@fastify/multipart@9.3.0':
+    resolution: {integrity: sha512-NpeKipTOjjL1dA7SSlRMrOWWtrE8/0yKOmeudkdQoEaz4sVDJw5MVdZIahsWhvpc3YTN7f04f9ep/Y65RKoOWA==}
 
   '@fastify/postgres@6.0.2':
     resolution: {integrity: sha512-b8JKy/aNcz/iKzFEe0Qwx7xkk2lmcQXxylg6jOctYCpNW/shSJZunIhMrTI3J5GQQubtMmRGXEiwfKdq5h4LNQ==}
@@ -1911,6 +1911,9 @@ packages:
   secure-json-parse@4.0.0:
     resolution: {integrity: sha512-dxtLJO6sc35jWidmLxo7ij+Eg48PM/kleBsxpC8QJE0qJICe+KawkDQmvCMZUr9u7WKVHgMW6vy3fQ7zMiFZMA==}
 
+  secure-json-parse@4.1.0:
+    resolution: {integrity: sha512-l4KnYfEyqYJxDwlNVyRfO2E4NTHfMKAWdUuA8J0yve2Dz/E/PdBepY03RvyJpssIpRFwJoCD55wA+mEDs6ByWA==}
+
   semver@6.3.1:
     resolution: {integrity: sha512-BR7VvDCVHO+q2xBEWskxS6DJE1qRnb7DxzUrogb71CWoSficBxYsiAGd+Kl0mmq/MprG9yArRkyrQxTO6XjMzA==}
     hasBin: true
@@ -2465,13 +2468,13 @@ snapshots:
     dependencies:
       dequal: 2.0.3
 
-  '@fastify/multipart@9.2.1':
+  '@fastify/multipart@9.3.0':
     dependencies:
       '@fastify/busboy': 3.2.0
       '@fastify/deepmerge': 3.1.0
       '@fastify/error': 4.2.0
       fastify-plugin: 5.1.0
-      secure-json-parse: 4.0.0
+      secure-json-parse: 4.1.0
 
   '@fastify/postgres@6.0.2(pg@8.16.3)':
     dependencies:
@@ -4121,7 +4124,7 @@ snapshots:
       on-exit-leak-free: 2.1.2
       pino-abstract-transport: 2.0.0
       pump: 3.0.3
-      secure-json-parse: 4.0.0
+      secure-json-parse: 4.1.0
       sonic-boom: 4.2.0
       strip-json-comments: 5.0.3
 
@@ -4274,6 +4277,8 @@ snapshots:
   safe-stable-stringify@2.5.0: {}
 
   secure-json-parse@4.0.0: {}
+
+  secure-json-parse@4.1.0: {}
 
   semver@6.3.1: {}
 

@@ -89,8 +89,8 @@ const authenticationPlugin: FastifyPluginCallbackTypebox = (fastify, _opts, done
     handler: authHandler, //✅
   });
 
-  fastify.post('/verify-email', {
-    handler: authHandler, // ❌
+  fastify.get('/verify-email', {
+    handler: authHandler,
   });
 
   fastify.get('/list-sessions', {
@@ -148,7 +148,7 @@ const authenticationPlugin: FastifyPluginCallbackTypebox = (fastify, _opts, done
       }),
     },
     handler: async function signUpHandler(request, reply) {
-      const { headers } = await fastify.auth.api.signUpEmail({
+      const signUpResponse = await fastify.auth.api.signUpEmail({
         returnHeaders: true,
         body: {
           name: '', // required
@@ -157,7 +157,9 @@ const authenticationPlugin: FastifyPluginCallbackTypebox = (fastify, _opts, done
         },
       });
 
-      return await setAuthHeadersAndGetSession(headers, reply);
+      // const data = await setAuthHeadersAndGetSession(signUpResponse.headers, reply);
+
+      return signUpResponse.response;
     },
   });
 

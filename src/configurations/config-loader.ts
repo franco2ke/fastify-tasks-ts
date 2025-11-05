@@ -1,4 +1,5 @@
 import environmentVariablesSchema from '../schemas/environment-variables.js';
+import sendVerificationEmailFn, { type VerificationEmailInfo } from '../utils/send-mail.js';
 import fastifyEnv from '@fastify/env';
 import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 import type { Static } from '@sinclair/typebox';
@@ -54,10 +55,19 @@ interface BetterAuthConfig {
       };
     };
   };
+  baseURL: string;
   basePath: string;
   emailAndPassword: {
     enabled: boolean;
     requireEmailVerification: boolean;
+  };
+  emailVerification: {
+    sendOnSignup: boolean;
+    autoSignInAfterVerification?: boolean;
+    sendVerificationEmail: (
+      verificationEmailInfo: VerificationEmailInfo,
+      request?: Request,
+    ) => Promise<void>;
   };
   user: {
     modelName: string;
@@ -146,10 +156,16 @@ export const betterAuthConfig: BetterAuthConfig = {
       },
     },
   },
+  baseURL: 'http://localhost:5173',
   basePath: '/api/auth',
   emailAndPassword: {
     enabled: true,
-    requireEmailVerification: false,
+    requireEmailVerification: true,
+  },
+  emailVerification: {
+    sendOnSignup: true,
+    autoSignInAfterVerification: false,
+    sendVerificationEmail: sendVerificationEmailFn,
   },
   user: {
     modelName: 'users',

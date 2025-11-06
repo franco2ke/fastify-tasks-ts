@@ -1,5 +1,8 @@
 import environmentVariablesSchema from '../schemas/environment-variables.js';
-import sendVerificationEmailFn, { type VerificationEmailInfo } from '../utils/send-mail.js';
+import sendVerificationEmailFn, {
+  type VerificationEmailInfo,
+  sendResetPassword as sendResetPasswordFn,
+} from '../utils/send-mail.js';
 import fastifyEnv from '@fastify/env';
 import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 import type { Static } from '@sinclair/typebox';
@@ -60,6 +63,7 @@ interface BetterAuthConfig {
   emailAndPassword: {
     enabled: boolean;
     requireEmailVerification: boolean;
+    sendResetPassword: (resetEmailInfo: VerificationEmailInfo, request?: Request) => Promise<void>;
   };
   emailVerification: {
     sendOnSignup: boolean;
@@ -161,6 +165,7 @@ export const betterAuthConfig: BetterAuthConfig = {
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,
+    sendResetPassword: sendResetPasswordFn,
   },
   emailVerification: {
     sendOnSignup: true,

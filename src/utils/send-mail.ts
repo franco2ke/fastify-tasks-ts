@@ -27,4 +27,22 @@ async function sendVerificationEmail(
   });
 }
 
+export async function sendResetPassword(
+  { user, url, token }: VerificationEmailInfo,
+  request?: Request,
+) {
+  // Construct frontend URL: baseURL/reset-password/token
+  const urlObj = new URL(url);
+  const frontendUrl = `${urlObj.origin}/reset-password/${token}`;
+
+  await client.sendEmail({
+    From: 'francis@paon.co.ke',
+    To: user.email,
+    Subject: 'Reset your password',
+    HtmlBody: `<strong>Hello</strong> Click the link to reset your password: ${frontendUrl}.`,
+    TextBody: `Click the link to reset your password: ${frontendUrl}`,
+    MessageStream: 'outbound',
+  });
+}
+
 export default sendVerificationEmail;

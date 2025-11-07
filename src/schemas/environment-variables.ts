@@ -24,7 +24,7 @@ const environmentVariablesSchema = Type.Object(
 
     // Email API
     POSTMARK_SERVER_TOKEN: Type.String({ minLength: 1 }),
-    MAIL_FROM_ADDRESS: Type.String({ format: 'email' }),
+    MAIL_FROM_ADDRESS: Type.String({ minLength: 1 }),
     MAIL_FROM_NAME: Type.Optional(Type.String({ default: 'Fastify Tasks' })),
   },
   {

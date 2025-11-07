@@ -81,16 +81,35 @@ const authenticationPlugin: FastifyPluginCallbackTypebox = (fastify, _opts, done
     handler: authHandler,
   });
 
-  fastify.post('/forget-password', {
-    handler: authHandler, //✅
+  fastify.post('/forgot-password', {
+    schema: {
+      body: Type.Object({
+        email: Type.String({
+          format: 'email',
+          minLength: 1,
+          maxLength: 255,
+        }),
+      }),
+    },
+    handler: async function resetPasswordHandler(request, reply) {
+      // password reset email will be sent at this by Better Auth (requestPasswordReset)
+      const resetPasswordResponse = await fastify.auth.api.requestPasswordReset({
+        body: {
+          email: request.body.email,
+          redirectTo: '/reset-password',
+        },
+      });
+
+      return resetPasswordResponse;
+    },
   });
 
   fastify.post('/reset-password', {
-    handler: authHandler, //✅
+    handler: authHandler,
   });
 
-  fastify.post('/verify-email', {
-    handler: authHandler, // ❌
+  fastify.get('/verify-email', {
+    handler: authHandler,
   });
 
   fastify.get('/list-sessions', {
@@ -148,7 +167,7 @@ const authenticationPlugin: FastifyPluginCallbackTypebox = (fastify, _opts, done
       }),
     },
     handler: async function signUpHandler(request, reply) {
-      const { headers } = await fastify.auth.api.signUpEmail({
+      const signUpResponse = await fastify.auth.api.signUpEmail({
         returnHeaders: true,
         body: {
           name: '', // required
@@ -157,7 +176,9 @@ const authenticationPlugin: FastifyPluginCallbackTypebox = (fastify, _opts, done
         },
       });
 
-      return await setAuthHeadersAndGetSession(headers, reply);
+      // const data = await setAuthHeadersAndGetSession(signUpResponse.headers, reply);
+
+      return signUpResponse.response;
     },
   });
 

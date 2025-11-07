@@ -46,7 +46,7 @@ const plugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
         },
       });
 
-      console.log('😇', 'the user has permissions to create tasks', '🤓');
+      // console.log('😇', 'the user has permissions to create tasks', '🤓');
 
       if (!hasPermission.success) {
         reply.code(403);

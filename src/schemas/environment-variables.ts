@@ -21,6 +21,11 @@ const environmentVariablesSchema = Type.Object(
 
     // Security
     RATE_LIMIT_MAX: Type.Number({ default: 100 }), // Put it to 4 in your .env file for tests
+
+    // Email API
+    POSTMARK_SERVER_TOKEN: Type.String({ minLength: 1 }),
+    MAIL_FROM_ADDRESS: Type.String({ minLength: 1 }),
+    MAIL_FROM_NAME: Type.Optional(Type.String({ default: 'Fastify Tasks' })),
   },
   {
     additionalProperties: false,

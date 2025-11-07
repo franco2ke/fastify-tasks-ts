@@ -1,4 +1,4 @@
-import { build } from '../helper';
+import { build } from '../helper.js';
 import * as assert from 'node:assert';
 import { test } from 'node:test';
 

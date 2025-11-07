@@ -1,6 +1,7 @@
 import { ServerClient } from 'postmark';
 
-const client = new ServerClient('60dcc353-829c-4658-8e08-ab16982eaf1c');
+// Initialize client with token from environment variable
+const client = new ServerClient(process.env.POSTMARK_SERVER_TOKEN ?? '');
 
 export interface VerificationEmailInfo {
   user: { email: string };
@@ -8,7 +9,7 @@ export interface VerificationEmailInfo {
   token: string;
 }
 
-async function sendVerificationEmail(
+export async function sendVerificationEmail(
   { user, url, token }: VerificationEmailInfo,
   request?: Request,
 ) {
@@ -18,7 +19,7 @@ async function sendVerificationEmail(
   const modifiedUrl = urlObj.toString();
 
   await client.sendEmail({
-    From: 'francis@paon.co.ke',
+    From: process.env.MAIL_FROM_ADDRESS ?? 'francis@paon.co.ke',
     To: user.email,
     Subject: 'Verify your email address',
     HtmlBody: `<strong>Hello</strong> Click the link to verify your email: ${modifiedUrl}.`,
@@ -36,7 +37,7 @@ export async function sendResetPassword(
   const frontendUrl = `${urlObj.origin}/reset-password/${token}`;
 
   await client.sendEmail({
-    From: 'francis@paon.co.ke',
+    From: process.env.MAIL_FROM_ADDRESS ?? 'francis@paon.co.ke',
     To: user.email,
     Subject: 'Reset your password',
     HtmlBody: `<strong>Hello</strong> Click the link to reset your password: ${frontendUrl}.`,
@@ -44,5 +45,3 @@ export async function sendResetPassword(
     MessageStream: 'outbound',
   });
 }
-
-export default sendVerificationEmail;

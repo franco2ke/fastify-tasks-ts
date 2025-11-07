@@ -1,7 +1,8 @@
 import environmentVariablesSchema from '../schemas/environment-variables.js';
-import sendVerificationEmailFn, {
+import {
   type VerificationEmailInfo,
   sendResetPassword as sendResetPasswordFn,
+  sendVerificationEmail as sendVerificationEmailFn,
 } from '../utils/send-mail.js';
 import fastifyEnv from '@fastify/env';
 import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';

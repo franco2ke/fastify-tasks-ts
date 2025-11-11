@@ -18,6 +18,7 @@ declare module 'fastify' {
     secrets: ConfigType;
     config: {
       configStatus: boolean;
+      // centrilized configs for each plugin
       postgres: {
         connectionString: string;
         databaseString: string;
@@ -26,7 +27,6 @@ declare module 'fastify' {
         max: number;
         timeWindow: string;
       };
-      betterAuth: object;
       swagger: {
         routePrefix: string;
         config: {
@@ -226,6 +226,7 @@ export const betterAuthConfig: BetterAuthConfig = {
 
 // named function for better stack traces / debugging
 const configLoader: FastifyPluginAsync = async function configLoader(fastify, _opts) {
+  // reads env variables from process.env, validates them, and decorates Fastify instance with validated values: fastify.secrets
   await fastify.register(fastifyEnv, {
     confKey: 'secrets',
     schema: environmentVariablesSchema,
@@ -241,7 +242,6 @@ const configLoader: FastifyPluginAsync = async function configLoader(fastify, _o
       max: fastify.secrets.RATE_LIMIT_MAX,
       timeWindow: '1 minute',
     },
-    betterAuth: betterAuthConfig,
     swagger: {
       routePrefix: '/documentation',
       config: {

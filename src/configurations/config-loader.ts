@@ -5,14 +5,12 @@ import {
   sendVerificationEmail as sendVerificationEmailFn,
 } from '../utils/send-mail.js';
 import fastifyEnv from '@fastify/env';
-import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 import type { Static } from '@sinclair/typebox';
+import type { FastifyPluginAsync } from 'fastify';
 import fp from 'fastify-plugin';
 
 // Automatically derive config type from schema
-type ConfigType = Static<typeof environmentVariablesSchema> & {
-  PORT?: number; // Add any additional properties not in schema
-};
+type ConfigType = Static<typeof environmentVariablesSchema>;
 
 // extending the existing FastifyInstance to include a config property
 declare module 'fastify' {
@@ -194,6 +192,7 @@ export const betterAuthConfig: BetterAuthConfig = {
     expiresIn: 600,
     updateAge: 360,
     disableSessionRefresh: false,
+
     cookieCache: {
       enabled: false, // Enable caching session in cookie (default: `false`)
       maxAge: 300, // 5 minutes
@@ -225,7 +224,8 @@ export const betterAuthConfig: BetterAuthConfig = {
   trustedOrigins: ['http://localhost:5173'],
 };
 
-const configLoader: FastifyPluginAsyncTypebox = async function (fastify, _opts) {
+// named function for better stack traces / debugging
+const configLoader: FastifyPluginAsync = async function configLoader(fastify, _opts) {
   await fastify.register(fastifyEnv, {
     confKey: 'secrets',
     schema: environmentVariablesSchema,

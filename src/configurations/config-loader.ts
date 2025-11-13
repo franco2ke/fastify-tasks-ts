@@ -18,7 +18,7 @@ declare module 'fastify' {
     secrets: ConfigType;
     config: {
       configStatus: boolean;
-      // centrilized configs for each plugin
+      // centralized configs for each plugin
       postgres: {
         connectionString: string;
         databaseString: string;

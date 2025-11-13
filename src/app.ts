@@ -7,7 +7,7 @@ import options from './configurations/server-options.js';
 
 export default async function app(fastify: FastifyInstance, opts: FastifyPluginOptions) {
   // Remove skipOverride option as it only serves testing purpose
-  const { skipOverride, ...pluginOpts } = opts;
+  const { skipOverride, ...routePluginOpts } = opts;
 
   // load configuration before loading other plugins
   await fastify.register(configLoader);
@@ -20,7 +20,9 @@ export default async function app(fastify: FastifyInstance, opts: FastifyPluginO
   // load all plugins from plugins folder
   await fastify.register(AutoLoad, {
     dir: path.join(import.meta.dirname, 'plugins'),
+    // ignore files ending with .no-load.ts or .no-load.js
     ignorePattern: /.*.no-load\.(ts|js)/,
+    // global options used for all autoloaded plugins
     options: fastify.config,
   });
 
@@ -31,10 +33,12 @@ export default async function app(fastify: FastifyInstance, opts: FastifyPluginO
     autoHooks: true,
     ignorePattern: /.*.no-load\.(ts|js)/,
     cascadeHooks: true,
-    options: pluginOpts,
+    options: routePluginOpts,
   });
 
-  fastify.setErrorHandler((err, request, reply) => {
+  // Set the global error handler & prevent leaking internal implementation info
+  // NOTE: catches any error not explicitly caught in the code, security best practice
+  fastify.setErrorHandler(async (err, request, reply) => {
     fastify.log.error(
       {
         err,
@@ -51,6 +55,8 @@ export default async function app(fastify: FastifyInstance, opts: FastifyPluginO
 
     reply.code(err.statusCode ?? 500);
 
+    // hides sensitive details for server errors (5xx)
+    // shows actual message for client errors (4xx) e.g. validation failures
     let message = 'Internal Server Error';
     if (typeof err.statusCode === 'number' && err.statusCode < 500) {
       message = err.message;
@@ -60,6 +66,7 @@ export default async function app(fastify: FastifyInstance, opts: FastifyPluginO
   });
 
   // An attacker could search for valid URLs if your 404 error handling is not rate limited.
+  // NOTE: only runs when no route matches the request
   fastify.setNotFoundHandler(
     {
       preHandler: fastify.rateLimit({
@@ -67,7 +74,7 @@ export default async function app(fastify: FastifyInstance, opts: FastifyPluginO
         timeWindow: 500,
       }),
     },
-    (request, reply) => {
+    async (request, reply) => {
       request.log.warn(
         {
           request: {
@@ -82,7 +89,7 @@ export default async function app(fastify: FastifyInstance, opts: FastifyPluginO
 
       reply.code(404);
 
-      return { message: 'Not Found' };
+      return { message: 'Not Found 😵' };
     },
   );
 }

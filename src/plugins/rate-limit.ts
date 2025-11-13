@@ -11,4 +11,4 @@ async function rateLimiter(fastify: FastifyInstance, opts: PluginOptions) {
     ...opts.rateLimit,
   });
 }
-export default fp(rateLimiter, {});
+export default fp(rateLimiter);

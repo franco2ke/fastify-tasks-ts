@@ -2,6 +2,7 @@ import { type Session, type User, auth } from '../auth.js';
 import type { FastifyInstance, FastifyPluginOptions, FastifyReply, FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
 
+// module augmentation to extend the existing types
 declare module 'fastify' {
   export interface FastifyInstance {
     auth: typeof auth;
@@ -34,6 +35,7 @@ function authenticationPlugin(fastify: FastifyInstance, opts: FastifyPluginOptio
       }
 
       const sessionData = await fastify.auth.api.getSession({
+        // Headers() constructor comes from the Web Standards API
         headers: new Headers(requestHeaders),
       });
 
@@ -52,5 +54,4 @@ function authenticationPlugin(fastify: FastifyInstance, opts: FastifyPluginOptio
 
 export default fp(authenticationPlugin, {
   name: 'authentication',
-  dependencies: ['postgres-connector'],
 });

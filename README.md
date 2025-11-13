@@ -96,22 +96,26 @@ To connect to the PostgreSQL database running in the container from your host ma
 By default, PostgreSQL containers run in UTC timezone, which can cause timestamp inconsistencies if your application server is in a different timezone. This manifests as `created_at` and `updated_at` timestamps being several hours off from when actions actually occurred.
 
 ### Symptoms
+
 - Task timestamps show times that are hours behind/ahead of when you actually created/updated them
 - Database `NOW()` function returns times that don't match your local time
 
 ### Solution
 
 1. **Check your current timezone:**
+
    ```bash
    date
    ```
 
 2. **Check PostgreSQL container timezone:**
+
    ```bash
    docker exec postgres-dev date
    ```
 
 3. **Fix database timezone (recommended approach):**
+
    ```bash
    # Set timezone for your specific database
    docker exec postgres-dev psql -U francis -d fastify_todo -c "ALTER DATABASE fastify_todo SET timezone = 'Africa/Nairobi';"
@@ -129,6 +133,7 @@ By default, PostgreSQL containers run in UTC timezone, which can cause timestamp
    ```
 
 ### Common Timezones
+
 - East Africa Time: `'Africa/Nairobi'`
 - UTC: `'UTC'`
 - US Eastern: `'America/New_York'`

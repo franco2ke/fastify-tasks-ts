@@ -3,7 +3,7 @@ import { type FastifyPluginCallbackTypebox, Type } from '@fastify/type-provider-
 
 // TODO: add request, response schemas
 
-const administrationPlugin: FastifyPluginCallbackTypebox = (fastify, opts, done) => {
+const administrationPlugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
   // Create User
   fastify.post('/create-user', {
     schema: {

@@ -7,7 +7,10 @@ import { ac, admin, moderator, user } from './utils/permissions.js';
 
 const { adminOptions, ...betterAuthConfig } = allBetterAuthConfigs;
 
-// Auth api setup done here for better-auth CLI to work
+// NOTE: Auth api setup must be done here for better-auth CLI to work
+// The better-auth CLI looks for an exported 'auth' object from betterAuth() to access
+// configuration for database migrations, schema generation, etc. without loading the entire app
+
 export const auth = betterAuth({
   database: new Pool({
     host: process.env.POSTGRES_HOST,
@@ -29,6 +32,6 @@ export const auth = betterAuth({
   ],
   ...betterAuthConfig,
 });
-
+// special typescript helper to keep types in sync, inferred from db
 export type User = typeof auth.$Infer.Session.user;
 export type Session = typeof auth.$Infer.Session;

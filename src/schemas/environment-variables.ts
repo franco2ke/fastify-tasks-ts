@@ -3,11 +3,11 @@ import { type TSchema, Type } from '@sinclair/typebox';
 const environmentVariablesSchema = Type.Object(
   {
     NODE_ENV: Type.String({ default: 'production' }),
+    PRODUCTION_LOGGING: Type.Number(),
     // Server
     FASTIFY_PORT: Type.Number(),
     FASTIFY_ADDRESS: Type.String(),
     FASTIFY_CLOSE_GRACE_DELAY: Type.Number(),
-    LOG_LEVEL: Type.String(),
 
     CAN_DROP_DATABASE: Type.Number(),
     CAN_SEED_DATABASE: Type.Number(),

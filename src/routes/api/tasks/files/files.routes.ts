@@ -193,8 +193,8 @@ const fileTasksRoutes: FastifyPluginAsyncTypebox = async function (fastify, _opt
         ? request.query
         : {
             ...request.query,
-            author_id: request.query.author_id ?? session.userId,
-            assigned_user_id: request.query.assigned_user_id ?? session.userId,
+            author_id: session.userId,
+            assigned_user_id: session.userId,
           };
 
       const { tasks } = await this.tasksRepository.paginate({

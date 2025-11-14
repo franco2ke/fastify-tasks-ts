@@ -193,8 +193,8 @@ const plugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
         ? request.query
         : {
             ...request.query,
-            author_id: request.query.author_id ?? session.userId,
-            assigned_user_id: request.query.assigned_user_id ?? session.userId,
+            author_id: session.userId,
+            assigned_user_id: session.userId,
           };
 
       return await tasksRepository.paginate({

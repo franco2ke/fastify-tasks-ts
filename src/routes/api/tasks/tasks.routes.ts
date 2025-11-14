@@ -5,6 +5,11 @@ import {
   TaskSchema,
   UpdateTaskSchema,
 } from '../../../schemas/tasks.js';
+import {
+  canAssignTaskTo,
+  canAssignTasks,
+  canManageTasks,
+} from '../../../utils/task-authorization.js';
 import { type FastifyPluginCallbackTypebox, Type } from '@fastify/type-provider-typebox';
 
 const plugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
@@ -29,17 +34,18 @@ const plugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
       },
       tags: ['Tasks'],
     },
-    onRequest: [fastify.authenticate.bind(fastify)],
     handler: async function (request, reply) {
-      if (!request.session) {
+      const { session } = request;
+      if (!session) {
+        // 401: Who are you
         reply.code(401);
-        return { error: 'Unauthorized' };
+        return { error: 'You must be logged in to access this resource' };
       }
 
       // Check permission
-      const hasPermission = await fastify.auth.api.userHasPermission({
+      const hasCreateTaskPermission = await fastify.auth.api.userHasPermission({
         body: {
-          userId: request.session.userId,
+          userId: session.userId,
           permissions: {
             task: ['create'],
           },
@@ -48,9 +54,10 @@ const plugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
 
       // console.log('😇', 'the user has permissions to create tasks', '🤓');
 
-      if (!hasPermission.success) {
+      if (!hasCreateTaskPermission.success) {
+        // 403: I know who you are, but you can't do this
         reply.code(403);
-        return { error: 'Forbidden' };
+        return { error: `You don't have permission to access this resource` };
       }
 
       if (request.body.title === undefined || request.body.description === undefined) {
@@ -58,11 +65,23 @@ const plugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
         return { error: 'Incorrect task information, fill title / description fields' };
       }
 
+      //
+      const canAssign = await canAssignTaskTo(
+        fastify,
+        session.userId,
+        request.body.assigned_user_id,
+      );
+
+      if (!canAssign) {
+        reply.code(403);
+        return { error: 'Regular users can only assign tasks to themselves' };
+      }
+
       const id = await tasksRepository.create({
         title: request.body.title,
         description: request.body.description,
         assigned_user_id: request.body.assigned_user_id,
-        author_id: request.session.userId,
+        author_id: session.userId,
       });
 
       reply.code(201);
@@ -85,12 +104,11 @@ const plugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
       },
       tags: ['Tasks'],
     },
-    onRequest: [fastify.authenticate.bind(fastify)],
     handler: async function (request, reply) {
       const { session } = request;
       if (!session) {
         reply.code(401);
-        return { error: 'Unauthorized' };
+        return { error: 'You must be logged in to access this resource' };
       }
 
       // Check permission
@@ -105,7 +123,7 @@ const plugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
 
       if (!hasPermission.success) {
         reply.code(403);
-        return { error: 'Forbidden' };
+        return { error: "You don't have permission to access this resource" };
       }
 
       const { id } = request.params;
@@ -117,22 +135,16 @@ const plugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
       }
 
       // Check ownership for non-privileged users
-      const canReadAll = await fastify.auth.api.userHasPermission({
-        body: {
-          userId: session.userId,
-          permissions: {
-            task: ['assign'], // Moderators/admins have assign permission
-          },
-        },
-      });
+      // Users with assign/manage permission can read all tasks
+      const canReadAll = await canAssignTasks(fastify, session.userId);
 
       if (
-        !canReadAll.success &&
+        !canReadAll &&
         task.author_id !== session.userId &&
         task.assigned_user_id !== session.userId
       ) {
         reply.code(403);
-        return { error: 'Forbidden' };
+        return { error: "You don't have permission to access this resource" };
       }
 
       return task;
@@ -150,12 +162,11 @@ const plugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
       },
       tags: ['Tasks'],
     },
-    onRequest: [fastify.authenticate.bind(fastify)],
     handler: async function (request, reply) {
       const { session } = request;
       if (!session) {
         reply.code(401);
-        return { error: 'Unauthorized' };
+        return { error: 'You must be logged in to access this resource' };
       }
 
       // Check permission
@@ -170,21 +181,15 @@ const plugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
 
       if (!hasPermission.success) {
         reply.code(403);
-        return { error: 'Forbidden' };
+        return { error: "You don't have permission to access this resource" };
       }
 
       // Check if user can read all tasks (moderators/admins)
-      const canReadAll = await fastify.auth.api.userHasPermission({
-        body: {
-          userId: session.userId,
-          permissions: {
-            task: ['assign'], // Moderators/admins have assign permission
-          },
-        },
-      });
+      // Users with assign/manage permission can read all tasks
+      const canReadAll = await canAssignTasks(fastify, session.userId);
 
       // Filter by ownership for regular users
-      const queryFilters = canReadAll.success
+      const queryFilters = canReadAll
         ? request.query
         : {
             ...request.query,
@@ -216,12 +221,11 @@ const plugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
       },
       tags: ['Tasks'],
     },
-    onRequest: [fastify.authenticate.bind(fastify)],
     handler: async function (request, reply) {
       const { session } = request;
       if (!session) {
         reply.code(401);
-        return { error: 'Unauthorized' };
+        return { error: 'You must be logged in to access this resource' };
       }
 
       // Check permission
@@ -236,7 +240,7 @@ const plugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
 
       if (!hasPermission.success) {
         reply.code(403);
-        return { error: 'Forbidden' };
+        return { error: "You don't have permission to access this resource" };
       }
 
       const { id } = request.params;
@@ -249,22 +253,30 @@ const plugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
       }
 
       // Check ownership for non-admins
-      const canUpdateAll = await fastify.auth.api.userHasPermission({
-        body: {
-          userId: session.userId,
-          permissions: {
-            task: ['assign'], // Admins have assign permission, moderators shouldn't reach here
-          },
-        },
-      });
+      // Users with manage permission can update all tasks
+      const canUpdateAll = await canManageTasks(fastify, session.userId);
 
       if (
-        !canUpdateAll.success &&
+        !canUpdateAll &&
         task.author_id !== session.userId &&
         task.assigned_user_id !== session.userId
       ) {
         reply.code(403);
-        return { error: 'Forbidden' };
+        return { error: "You don't have permission to access this resource" };
+      }
+
+      // Validate assignment changes if assigned_user_id is being updated
+      if (request.body.assigned_user_id !== undefined) {
+        const canAssign = await canAssignTaskTo(
+          fastify,
+          session.userId,
+          request.body.assigned_user_id,
+        );
+
+        if (!canAssign) {
+          reply.code(403);
+          return { error: 'Regular users can only assign tasks to themselves' };
+        }
       }
 
       const updatedTask = await tasksRepository.update(id, request.body);
@@ -292,12 +304,11 @@ const plugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
       },
       tags: ['Tasks'],
     },
-    onRequest: [fastify.authenticate.bind(fastify)],
     handler: async function (request, reply) {
       const { session } = request;
       if (!session) {
         reply.code(401);
-        return { error: 'Unauthorized' };
+        return { error: 'You must be logged in to access this resource' };
       }
 
       // Check permission
@@ -312,7 +323,7 @@ const plugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
 
       if (!hasPermission.success) {
         reply.code(403);
-        return { error: 'Forbidden' };
+        return { error: "You don't have permission to access this resource" };
       }
 
       const { id } = request.params;
@@ -325,22 +336,16 @@ const plugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
       }
 
       // Check ownership for non-admins
-      const canDeleteAll = await fastify.auth.api.userHasPermission({
-        body: {
-          userId: session.userId,
-          permissions: {
-            task: ['assign'], // Admins have assign permission
-          },
-        },
-      });
+      // Users with manage permission can delete all tasks
+      const canDeleteAll = await canManageTasks(fastify, session.userId);
 
       if (
-        !canDeleteAll.success &&
+        !canDeleteAll &&
         task.author_id !== session.userId &&
         task.assigned_user_id !== session.userId
       ) {
         reply.code(403);
-        return { error: 'Forbidden' };
+        return { error: "You don't have permission to access this resource" };
       }
 
       const deleted = await tasksRepository.delete(id);
@@ -372,27 +377,20 @@ const plugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
       },
       tags: ['Tasks'],
     },
-    onRequest: [fastify.authenticate.bind(fastify)],
     handler: async function (request, reply) {
       const { session } = request;
       if (!session) {
         reply.code(401);
-        return { error: 'Authentication required' };
+        return { error: 'You must be logged in to access this resource' };
       }
 
-      // Check assign permission (only moderators and admins)
-      const hasPermission = await fastify.auth.api.userHasPermission({
-        body: {
-          userId: session.userId,
-          permissions: {
-            task: ['assign'],
-          },
-        },
-      });
+      // Check assign permission (moderators and admins)
+      // Both 'assign' and 'manage' permissions allow task assignment
+      const canAssign = await canAssignTasks(fastify, session.userId);
 
-      if (!hasPermission.success) {
+      if (!canAssign) {
         reply.code(403);
-        return { error: 'Moderator or admin access required' };
+        return { error: "You don't have permission to access this resource" };
       }
 
       const { id } = request.params;

@@ -5,12 +5,14 @@ import {
   sendVerificationEmail as sendVerificationEmailFn,
 } from '../utils/send-mail.js';
 import fastifyEnv from '@fastify/env';
+import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 import type { Static } from '@sinclair/typebox';
-import type { FastifyPluginAsync } from 'fastify';
 import fp from 'fastify-plugin';
 
 // Automatically derive config type from schema
-type ConfigType = Static<typeof environmentVariablesSchema>;
+type ConfigType = Static<typeof environmentVariablesSchema> & {
+  PORT?: number; // Add any additional properties not in schema
+};
 
 // extending the existing FastifyInstance to include a config property
 declare module 'fastify' {
@@ -18,7 +20,6 @@ declare module 'fastify' {
     secrets: ConfigType;
     config: {
       configStatus: boolean;
-      // centralized configs for each plugin
       postgres: {
         connectionString: string;
         databaseString: string;
@@ -27,6 +28,7 @@ declare module 'fastify' {
         max: number;
         timeWindow: string;
       };
+      betterAuth: object;
       swagger: {
         routePrefix: string;
         config: {
@@ -189,13 +191,12 @@ export const betterAuthConfig: BetterAuthConfig = {
       userAgent: 'user_agent',
       userId: 'user_id',
     },
-    expiresIn: 600,
-    updateAge: 360,
+    expiresIn: 3600,
+    updateAge: 2400,
     disableSessionRefresh: false,
-
     cookieCache: {
       enabled: false, // Enable caching session in cookie (default: `false`)
-      maxAge: 300, // 5 minutes
+      maxAge: 1800, // 30 minutes
     },
   },
   account: {
@@ -224,9 +225,7 @@ export const betterAuthConfig: BetterAuthConfig = {
   trustedOrigins: ['http://localhost:5173'],
 };
 
-// named function for better stack traces / debugging
-const configLoader: FastifyPluginAsync = async function configLoader(fastify, _opts) {
-  // reads env variables from process.env, validates them, and decorates Fastify instance with validated values: fastify.secrets
+const configLoader: FastifyPluginAsyncTypebox = async function (fastify, _opts) {
   await fastify.register(fastifyEnv, {
     confKey: 'secrets',
     schema: environmentVariablesSchema,
@@ -242,6 +241,7 @@ const configLoader: FastifyPluginAsync = async function configLoader(fastify, _o
       max: fastify.secrets.RATE_LIMIT_MAX,
       timeWindow: '1 minute',
     },
+    betterAuth: betterAuthConfig,
     swagger: {
       routePrefix: '/documentation',
       config: {

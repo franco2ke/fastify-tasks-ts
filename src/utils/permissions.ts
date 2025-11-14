@@ -9,6 +9,10 @@ import { adminAc, defaultStatements, userAc } from 'better-auth/plugins/admin/ac
  * This access control system implements checks and balances to ensure accountability
  * and prevent conflicts of interest in task management.
  *
+ * PERMISSION HIERARCHY:
+ * - 'manage' permission = Full control over all tasks (superset of 'assign')
+ * - 'assign' permission = Coordination role without modification rights
+ *
  * ROLES & PERMISSIONS:
  *
  * 1. USER (Basic authenticated users)
@@ -18,7 +22,8 @@ import { adminAc, defaultStatements, userAc } from 'better-auth/plugins/admin/ac
  *    - Import scope limited to self (can only create tasks authored/assigned to themselves)
  *
  * 2. MODERATOR (Work coordinators)
- *    - Can assign tasks to any user (coordination role)
+ *    - Has 'assign' permission for coordination role
+ *    - Can assign tasks to any user
  *    - Can read all tasks and export data (oversight)
  *    - CANNOT update, delete, or import tasks (maintains checks & balances)
  *    - Can ban/unban users (user moderation)
@@ -29,23 +34,24 @@ import { adminAc, defaultStatements, userAc } from 'better-auth/plugins/admin/ac
  *      * Prevent bulk modification via CSV import loophole
  *
  * 3. ADMIN (Full system access)
- *    - Complete access to all task operations
+ *    - Has 'manage' permission (includes all 'assign' capabilities)
+ *    - Complete CRUD access to all tasks regardless of ownership
  *    - Inherits all user management permissions from adminAc
  *    - Serves as escalation path when moderators need corrections
  *
  * OWNERSHIP ENFORCEMENT:
  * Permission checks are enforced in route handlers with ownership validation:
  * - Users can only update/delete tasks they authored or are assigned to
- * - Moderators can assign but not modify task details
- * - Admins bypass ownership restrictions
+ * - Moderators can assign but not modify task details (checked via 'assign' permission)
+ * - Admins bypass ownership restrictions (checked via 'manage' permission)
  *
  * NOTE: better-auth 'ban' permission includes both ban and unban capabilities
  */
 
-// 1. Define the resource name, and available actions,permissions via the statement object.
+// 1. Define the resource name, and available actions/permissions via the statement object.
 const statement = {
   ...defaultStatements,
-  task: ['create', 'read', 'update', 'delete', 'assign', 'import', 'export'],
+  task: ['create', 'read', 'update', 'delete', 'assign', 'manage', 'import', 'export'],
 } as const;
 
 // 2. Create the access controller, passing in the resource, available permissions via the statement object
@@ -62,7 +68,7 @@ export const user = ac.newRole({
 // ADMIN: Full access to all resources and task operations
 export const admin = ac.newRole({
   ...adminAc.statements,
-  task: ['create', 'read', 'update', 'delete', 'assign', 'import', 'export'],
+  task: ['create', 'read', 'update', 'delete', 'manage', 'import', 'export'],
 });
 
 // MODERATOR: Coordinates work (assign) but cannot modify task content (checks & balances)

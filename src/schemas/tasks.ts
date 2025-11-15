@@ -53,6 +53,7 @@ export const CreateTaskSchema = Type.Object({
 export const UpdateTaskSchema = Type.Object({
   title: Type.Optional(StringSchema),
   description: Type.Optional(StringSchema),
+  author_id: Type.Optional(IdSchema),
   assigned_user_id: Type.Optional(IdSchema),
   status: Type.Optional(TaskStatusSchema),
 });

@@ -1,4 +1,4 @@
-import { fastifyHeadersToStandardHeaders } from '../../../utils/headers-converter.js';
+import { fastifyHeadersToStandardHeaders } from '../../../../utils/headers-converter.js';
 import { type FastifyPluginCallbackTypebox, Type } from '@fastify/type-provider-typebox';
 
 // TODO: add request, response schemas

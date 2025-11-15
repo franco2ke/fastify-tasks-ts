@@ -66,3 +66,4 @@ test/types/index.js
 dist
 
 better-auth_migrations
+.env

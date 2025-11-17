@@ -13,8 +13,9 @@ import {
 import { type FastifyPluginCallbackTypebox, Type } from '@fastify/type-provider-typebox';
 
 const plugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
-  // NOTE: Create Task Route
   const { tasksRepository } = fastify;
+
+  // NOTE: Create Task Route
   fastify.post('/', {
     schema: {
       body: CreateTaskSchema,

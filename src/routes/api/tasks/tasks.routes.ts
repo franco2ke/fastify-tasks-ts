@@ -73,67 +73,6 @@ const plugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
     },
   });
 
-  // NOTE: Get Task by ID Route
-  fastify.get('/:id', {
-    schema: {
-      params: Type.Object({
-        id: Type.Number(),
-      }),
-      response: {
-        200: TaskSchema,
-        401: Type.Object({ error: Type.String() }),
-        403: Type.Object({ error: Type.String() }),
-        404: Type.Object({ message: Type.String() }),
-      },
-      tags: ['Tasks'],
-    },
-    handler: async function (request, reply) {
-      const { session } = request;
-      if (!session) {
-        reply.code(401);
-        return { error: 'You must be logged in to access this resource' };
-      }
-
-      // Check permission
-      const hasPermission = await fastify.auth.api.userHasPermission({
-        body: {
-          userId: session.userId,
-          permissions: {
-            task: ['read'],
-          },
-        },
-      });
-
-      if (!hasPermission.success) {
-        reply.code(403);
-        return { error: "You don't have permission to access this resource" };
-      }
-
-      const { id } = request.params;
-
-      const task = await tasksRepository.findById(id);
-      if (!task) {
-        reply.code(404);
-        return { message: 'Task not found' };
-      }
-
-      // Check ownership for non-privileged users
-      // Users with assign/manage permission can read all tasks
-      const canReadAll = await canAssignTasks(fastify, session.userId);
-
-      if (
-        !canReadAll &&
-        task.author_id !== session.userId &&
-        task.assigned_user_id !== session.userId
-      ) {
-        reply.code(403);
-        return { error: "You don't have permission to access this resource" };
-      }
-
-      return task;
-    },
-  });
-
   // NOTE: Get tasks with pagination, filtering
   fastify.get('/', {
     schema: {
@@ -166,6 +105,45 @@ const plugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
         limit: request.query.limit ?? 10,
         order: request.query.order ?? 'desc',
       });
+    },
+  });
+
+  // NOTE: Get Task by ID Route
+  fastify.get('/:id', {
+    schema: {
+      params: Type.Object({
+        id: Type.Number(),
+      }),
+      response: {
+        200: TaskSchema,
+        401: Type.Object({ error: Type.String() }),
+        403: Type.Object({ error: Type.String() }),
+        404: Type.Object({ message: Type.String() }),
+      },
+      tags: ['Tasks'],
+    },
+    handler: async function (request, reply) {
+      const { session } = request;
+      if (!session) {
+        reply.code(401);
+        return { error: 'You must be logged in to access this resource' };
+      }
+
+      const { id } = request.params;
+
+      const task = await tasksRepository.findById(id);
+      if (!task) {
+        reply.code(404);
+        return { message: 'Task not found' };
+      }
+
+      // Dont return task if it isn't assigned to current user
+      if (task.author_id !== session.userId && task.assigned_user_id !== session.userId) {
+        reply.code(404);
+        return { message: 'Task not found' };
+      }
+
+      return task;
     },
   });
 

@@ -1,6 +1,6 @@
 import type {
+  AdminQueryTaskPaginationSchema,
   CreateTaskSchema,
-  QueryTaskPaginationSchema,
   Task,
   UpdateTaskSchema,
 } from '../../schemas/tasks.js';
@@ -17,7 +17,7 @@ declare module 'fastify' {
 
 // Derived Types
 type CreateTask = Static<typeof CreateTaskSchema> & { author_id: string };
-type TaskQuery = Static<typeof QueryTaskPaginationSchema>;
+type TaskQuery = Static<typeof AdminQueryTaskPaginationSchema>;
 type UpdateTask = Static<typeof UpdateTaskSchema>;
 export type UploadTask = CreateTask & { status?: string };
 

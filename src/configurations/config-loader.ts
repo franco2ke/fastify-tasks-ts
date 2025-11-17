@@ -149,7 +149,8 @@ export const betterAuthConfig: BetterAuthConfig = {
     //     statements: [],
     //   },
     // },
-    adminUserIds: ['jZd5u0aC8i2ugRtBZb4fnsjZl98OSHlT'],
+    // adminUserIds: ['jZd5u0aC8i2ugRtBZb4fnsjZl98OSHlT'],
+    adminUserIds: [],
     impersonationSessionDuration: 60 * 60, // 1 hour
     schema: {
       user: {

@@ -281,12 +281,32 @@ function createRepository(fastify: FastifyInstance) {
       }
     },
 
-    async delete(id: number) {
+    async delete(id: number): Promise<Task | null> {
       const client = await fastify.pg.connect();
 
       try {
-        const result = await client.query('DELETE FROM tasks WHERE id = $1', [id]);
-        return (result.rowCount ?? 0) > 0;
+        const result = await client.query<Task>('DELETE FROM tasks WHERE id = $1 Returning *', [
+          id,
+        ]);
+        return result.rows[0] ?? null;
+      } finally {
+        client.release();
+      }
+    },
+
+    async deleteWithOwnershipCheck(id: number, userId: string): Promise<Task | null> {
+      const client = await fastify.pg.connect();
+
+      const query = `
+            DELETE FROM tasks
+            WHERE id = $1 AND (author_id = $2 OR assigned_user_id = $2)
+            RETURNING *`;
+
+      const params = [id, userId];
+
+      try {
+        const result = await client.query<Task>(query, params);
+        return result.rows[0] ?? null;
       } finally {
         client.release();
       }

@@ -5,7 +5,7 @@ import {
   TaskSchema,
   UpdateTaskSchema,
 } from '../../../schemas/tasks.js';
-import { canAssignTaskTo, canManageTasks } from '../../../utils/task-authorization.js';
+import { canAssignTaskTo } from '../../../utils/task-authorization.js';
 import { type FastifyPluginCallbackTypebox, Type } from '@fastify/type-provider-typebox';
 
 const plugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
@@ -190,7 +190,7 @@ const plugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
         id: Type.Number(),
       }),
       response: {
-        204: Type.Null(),
+        200: TaskSchema,
         401: Type.Object({ error: Type.String() }),
         403: Type.Object({ error: Type.String() }),
         404: Type.Object({ message: Type.String() }),
@@ -203,53 +203,16 @@ const plugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
         reply.code(401);
         return { error: 'You must be logged in to access this resource' };
       }
-
-      // Check permission
-      const hasPermission = await fastify.auth.api.userHasPermission({
-        body: {
-          userId: session.userId,
-          permissions: {
-            task: ['delete'],
-          },
-        },
-      });
-
-      if (!hasPermission.success) {
-        reply.code(403);
-        return { error: "You don't have permission to access this resource" };
-      }
-
       const { id } = request.params;
 
-      // Fetch task to check ownership
-      const task = await tasksRepository.findById(id);
-      if (!task) {
+      const deletedTask = await tasksRepository.deleteWithOwnershipCheck(id, session.userId);
+
+      if (!deletedTask) {
         reply.code(404);
         return { message: 'Task not found' };
       }
 
-      // Check ownership for non-admins
-      // Users with manage permission can delete all tasks
-      const canDeleteAll = await canManageTasks(fastify, session.userId);
-
-      if (
-        !canDeleteAll &&
-        task.author_id !== session.userId &&
-        task.assigned_user_id !== session.userId
-      ) {
-        reply.code(403);
-        return { error: "You don't have permission to access this resource" };
-      }
-
-      const deleted = await tasksRepository.delete(id);
-
-      if (!deleted) {
-        reply.code(404);
-        return { message: 'Task not found' };
-      }
-
-      reply.code(204);
-      return null;
+      return deletedTask;
     },
   });
 

@@ -101,6 +101,56 @@ const plugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
     },
   });
 
+  // NOTE: DELETE /api/admin/tasks/:id - Delete any task (admins only)
+  fastify.delete('/:id', {
+    schema: {
+      params: Type.Object({
+        id: Type.Number(),
+      }),
+      response: {
+        200: TaskSchema,
+        401: Type.Object({ error: Type.String() }),
+        403: Type.Object({ error: Type.String() }),
+        404: Type.Object({ message: Type.String() }),
+      },
+      tags: ['Admin - Tasks'],
+    },
+    handler: async function (request, reply) {
+      const { session } = request;
+
+      if (!session) {
+        reply.code(401);
+        return { error: 'You must be logged in to access this resource' };
+      }
+
+      // Check permission
+      const hasPermission = await fastify.auth.api.userHasPermission({
+        body: {
+          userId: session.userId,
+          permissions: {
+            task: ['manage'],
+          },
+        },
+      });
+
+      if (!hasPermission.success) {
+        reply.code(403);
+        return { error: "You don't have permission to access this resource" };
+      }
+
+      const { id } = request.params;
+
+      const deletedTask = await tasksRepository.delete(id);
+
+      if (!deletedTask) {
+        reply.code(404);
+        return { message: 'Task not found' };
+      }
+
+      return deletedTask;
+    },
+  });
+
   done();
 };
 

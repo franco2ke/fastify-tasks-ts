@@ -58,15 +58,24 @@ export const UpdateTaskSchema = Type.Object({
   status: Type.Optional(TaskStatusSchema),
 });
 
-// Search and pagination parameters
-export const QueryTaskPaginationSchema = Type.Object({
+// Base Search and pagination parameters
+const BasePaginationSchema = Type.Object({
   page: Type.Integer({ minimum: 1, default: 1 }),
   limit: Type.Integer({ minimum: 1, maximum: 100, default: 10 }),
-  author_id: Type.Optional(IdSchema),
-  assigned_user_id: Type.Optional(IdSchema),
   status: Type.Optional(TaskStatusSchema),
   order: Type.Union([Type.Literal('asc'), Type.Literal('desc')], { default: 'desc' }),
 });
+
+// Task search, pagination parameters for regular users
+export const QueryTaskPaginationSchema = BasePaginationSchema;
+
+export const AdminQueryTaskPaginationSchema = Type.Composite([
+  BasePaginationSchema,
+  Type.Object({
+    author_id: Type.Optional(IdSchema),
+    assigned_user_id: Type.Optional(IdSchema),
+  }),
+]);
 
 export const TaskPaginationResultSchema = Type.Object({
   total: Type.Integer({ minimum: 0, default: 0 }),

@@ -1,5 +1,5 @@
 import {
-  QueryTaskPaginationSchema,
+  AdminQueryTaskPaginationSchema,
   TaskPaginationResultSchema,
 } from '../../../../schemas/tasks.js';
 import { type FastifyPluginCallbackTypebox, Type } from '@fastify/type-provider-typebox';
@@ -23,7 +23,7 @@ const plugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
   // NOTE GET /api/admin/tasks - List all tasks (moderators and admins)
   fastify.get('/', {
     schema: {
-      querystring: QueryTaskPaginationSchema,
+      querystring: AdminQueryTaskPaginationSchema,
       response: {
         200: TaskPaginationResultSchema,
         401: Type.Object({ error: Type.String() }),

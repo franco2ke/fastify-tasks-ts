@@ -43,24 +43,6 @@ const plugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
         return { error: 'You must be logged in to access this resource' };
       }
 
-      // Check permission
-      const hasCreateTaskPermission = await fastify.auth.api.userHasPermission({
-        body: {
-          userId: session.userId,
-          permissions: {
-            task: ['create'],
-          },
-        },
-      });
-
-      // console.log('😇', 'the user has permissions to create tasks', '🤓');
-
-      if (!hasCreateTaskPermission.success) {
-        // 403: I know who you are, but you can't do this
-        reply.code(403);
-        return { error: `You don't have permission to access this resource` };
-      }
-
       if (request.body.title === undefined || request.body.description === undefined) {
         reply.code(400);
         return { error: 'Incorrect task information, fill title / description fields' };
@@ -170,33 +152,13 @@ const plugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
         return { error: 'You must be logged in to access this resource' };
       }
 
-      // Check permission
-      const hasPermission = await fastify.auth.api.userHasPermission({
-        body: {
-          userId: session.userId,
-          permissions: {
-            task: ['read'],
-          },
-        },
-      });
-
-      if (!hasPermission.success) {
-        reply.code(403);
-        return { error: "You don't have permission to access this resource" };
-      }
-
-      // Check if user can read all tasks (moderators/admins)
-      // Users with assign/manage permission can read all tasks
-      const canReadAll = await canAssignTasks(fastify, session.userId);
-
-      // Filter by ownership for regular users
-      const queryFilters = canReadAll
-        ? request.query
-        : {
-            ...request.query,
-            author_id: session.userId,
-            assigned_user_id: session.userId,
-          };
+      // NOTE: For SECURITY purposes. Always enforce ownership filtering for user routes
+      // Admins/moderators should use /api/admin/tasks for system-wide access
+      const queryFilters = {
+        ...request.query,
+        author_id: session.userId,
+        assigned_user_id: session.userId,
+      };
 
       return await tasksRepository.paginate({
         ...queryFilters,

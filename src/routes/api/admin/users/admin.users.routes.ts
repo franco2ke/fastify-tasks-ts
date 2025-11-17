@@ -18,7 +18,7 @@ const administrationPlugin: FastifyPluginCallbackTypebox = (fastify, _opts, done
         // FIXME: Find a way to automatically extract role types from better-auth
         role: Type.Optional(Type.Union([Type.Literal('user'), Type.Literal('admin')])),
       }),
-      tags: ['Admin Functions'],
+      tags: ['Admin - User management'],
     },
     handler: async function createUser(request, reply) {
       const newUser = await fastify.auth.api.createUser({
@@ -65,7 +65,7 @@ const administrationPlugin: FastifyPluginCallbackTypebox = (fastify, _opts, done
           ]),
         ),
       }),
-      tags: ['Admin Functions'],
+      tags: ['Admin - User management'],
     },
     // onRequest: [fastify.authenticate.bind(fastify)],
     handler: async function listUsers(request, reply) {
@@ -109,7 +109,7 @@ const administrationPlugin: FastifyPluginCallbackTypebox = (fastify, _opts, done
           // Type.Literal('super-admin'),
         ]),
       }),
-      tags: ['Admin Functions'],
+      tags: ['Admin - User management'],
     },
     handler: async function setRole(request, reply) {
       const headers = fastifyHeadersToStandardHeaders(request);
@@ -133,7 +133,7 @@ const administrationPlugin: FastifyPluginCallbackTypebox = (fastify, _opts, done
         userId: Type.String(),
         newPassword: Type.String(),
       }),
-      tags: ['Admin Functions'],
+      tags: ['Admin - User management'],
     },
     handler: async function setUserPassword(request, reply) {
       const headers = fastifyHeadersToStandardHeaders(request);
@@ -170,7 +170,7 @@ const administrationPlugin: FastifyPluginCallbackTypebox = (fastify, _opts, done
           // Add other user fields as needed
         }),
       }),
-      tags: ['Admin Functions'],
+      tags: ['Admin - User management'],
     },
     handler: async function updateUser(request, reply) {
       const headers = fastifyHeadersToStandardHeaders(request);
@@ -198,7 +198,7 @@ const administrationPlugin: FastifyPluginCallbackTypebox = (fastify, _opts, done
         banReason: Type.Optional(Type.String()),
         banExpiresIn: Type.Optional(Type.Number()),
       }),
-      tags: ['Admin Functions'],
+      tags: ['Admin - User management'],
     },
     handler: async function banUser(request, reply) {
       const headers = fastifyHeadersToStandardHeaders(request);
@@ -225,7 +225,7 @@ const administrationPlugin: FastifyPluginCallbackTypebox = (fastify, _opts, done
           maxLength: 255,
         }),
       }),
-      tags: ['Admin Functions'],
+      tags: ['Admin - User management'],
     },
     handler: async function unbanUser(request, reply) {
       const headers = fastifyHeadersToStandardHeaders(request);
@@ -250,7 +250,7 @@ const administrationPlugin: FastifyPluginCallbackTypebox = (fastify, _opts, done
           maxLength: 255,
         }),
       }),
-      tags: ['Admin Functions'],
+      tags: ['Admin - User management'],
     },
     handler: async function listUserSessions(request, reply) {
       const headers = fastifyHeadersToStandardHeaders(request);
@@ -274,7 +274,7 @@ const administrationPlugin: FastifyPluginCallbackTypebox = (fastify, _opts, done
           minLength: 1,
         }),
       }),
-      tags: ['Admin Functions'],
+      tags: ['Admin - User management'],
     },
     handler: async function revokeUserSession(request, reply) {
       const headers = fastifyHeadersToStandardHeaders(request);
@@ -299,7 +299,7 @@ const administrationPlugin: FastifyPluginCallbackTypebox = (fastify, _opts, done
           maxLength: 255,
         }),
       }),
-      tags: ['Admin Functions'],
+      tags: ['Admin - User management'],
     },
     handler: async function revokeUserSessions(request, reply) {
       const headers = fastifyHeadersToStandardHeaders(request);
@@ -324,7 +324,7 @@ const administrationPlugin: FastifyPluginCallbackTypebox = (fastify, _opts, done
           maxLength: 255,
         }),
       }),
-      tags: ['Admin Functions'],
+      tags: ['Admin - User management'],
     },
     handler: async function impersonateUser(request, reply) {
       const headers = fastifyHeadersToStandardHeaders(request);
@@ -343,7 +343,7 @@ const administrationPlugin: FastifyPluginCallbackTypebox = (fastify, _opts, done
   // NOTE: Stop impersonating and continue with your admin account
   fastify.post('/stop-impersonating', {
     schema: {
-      tags: ['Admin Functions'],
+      tags: ['Admin - User management'],
     },
     handler: async function stopImpersonating(request, reply) {
       const headers = fastifyHeadersToStandardHeaders(request);
@@ -365,7 +365,7 @@ const administrationPlugin: FastifyPluginCallbackTypebox = (fastify, _opts, done
           maxLength: 255,
         }),
       }),
-      tags: ['Admin Functions'],
+      tags: ['Admin - User management'],
     },
     handler: async function removeUser(request, reply) {
       const headers = fastifyHeadersToStandardHeaders(request);

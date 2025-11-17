@@ -49,6 +49,8 @@ const plugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
       });
     },
   });
+
+  done();
 };
 
 export default plugin;

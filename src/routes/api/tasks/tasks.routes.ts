@@ -5,11 +5,7 @@ import {
   TaskSchema,
   UpdateTaskSchema,
 } from '../../../schemas/tasks.js';
-import {
-  canAssignTaskTo,
-  canAssignTasks,
-  canManageTasks,
-} from '../../../utils/task-authorization.js';
+import { canAssignTaskTo, canManageTasks } from '../../../utils/task-authorization.js';
 import { type FastifyPluginCallbackTypebox, Type } from '@fastify/type-provider-typebox';
 
 const plugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
@@ -164,63 +160,19 @@ const plugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
     },
     handler: async function (request, reply) {
       const { session } = request;
+
       if (!session) {
         reply.code(401);
         return { error: 'You must be logged in to access this resource' };
       }
 
-      // Check permission
-      const hasPermission = await fastify.auth.api.userHasPermission({
-        body: {
-          userId: session.userId,
-          permissions: {
-            task: ['update'],
-          },
-        },
-      });
-
-      if (!hasPermission.success) {
-        reply.code(403);
-        return { error: "You don't have permission to access this resource" };
-      }
-
       const { id } = request.params;
 
-      // Fetch task to check ownership
-      const task = await tasksRepository.findById(id);
-      if (!task) {
-        reply.code(404);
-        return { message: 'Task not found' };
-      }
-
-      // Check ownership for non-admins
-      // Users with manage permission can update all tasks
-      const canUpdateAll = await canManageTasks(fastify, session.userId);
-
-      if (
-        !canUpdateAll &&
-        task.author_id !== session.userId &&
-        task.assigned_user_id !== session.userId
-      ) {
-        reply.code(403);
-        return { error: "You don't have permission to access this resource" };
-      }
-
-      // Validate assignment changes if assigned_user_id is being updated
-      if (request.body.assigned_user_id !== undefined) {
-        const canAssign = await canAssignTaskTo(
-          fastify,
-          session.userId,
-          request.body.assigned_user_id,
-        );
-
-        if (!canAssign) {
-          reply.code(403);
-          return { error: 'Regular users can only assign tasks to themselves' };
-        }
-      }
-
-      const updatedTask = await tasksRepository.update(id, request.body);
+      const updatedTask = await tasksRepository.updateWithOwnershipCheck(
+        id,
+        session.userId,
+        request.body,
+      );
 
       if (!updatedTask) {
         reply.code(404);
@@ -302,7 +254,7 @@ const plugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
   });
 
   // NOTE: Assign/Unassign Task Route (Moderator/Admin-only)
-  fastify.post('/:id/assign', {
+  /* fastify.post('/:id/assign', {
     schema: {
       params: Type.Object({
         id: Type.Number(),
@@ -348,7 +300,7 @@ const plugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
 
       return updatedTask;
     },
-  });
+  }); */
 
   done();
 };

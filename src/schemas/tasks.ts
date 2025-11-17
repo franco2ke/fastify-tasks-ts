@@ -50,13 +50,21 @@ export const CreateTaskSchema = Type.Object({
 });
 
 // update validation
-export const UpdateTaskSchema = Type.Object({
+const BaseUpdateSchema = Type.Object({
   title: Type.Optional(StringSchema),
   description: Type.Optional(StringSchema),
-  author_id: Type.Optional(IdSchema),
-  assigned_user_id: Type.Optional(IdSchema),
   status: Type.Optional(TaskStatusSchema),
 });
+
+export const UpdateTaskSchema = BaseUpdateSchema;
+
+export const AdminUpdateTaskSchema = Type.Composite([
+  BaseUpdateSchema,
+  Type.Object({
+    author_id: Type.Optional(IdSchema),
+    assigned_user_id: Type.Optional(IdSchema),
+  }),
+]);
 
 // Base Search and pagination parameters
 const BasePaginationSchema = Type.Object({

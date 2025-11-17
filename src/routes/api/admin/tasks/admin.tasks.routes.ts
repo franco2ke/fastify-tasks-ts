@@ -1,5 +1,6 @@
 import {
   AdminQueryTaskPaginationSchema,
+  AdminUpdateTaskSchema,
   TaskPaginationResultSchema,
   TaskSchema,
 } from '../../../../schemas/tasks.js';
@@ -68,6 +69,35 @@ const plugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
 
       // No ownership check - autohook alread verified admin/moderator access
       return task;
+    },
+  });
+
+  // NOTE: Update
+  fastify.patch('/:id', {
+    schema: {
+      params: Type.Object({
+        id: Type.Number(),
+      }),
+      body: AdminUpdateTaskSchema,
+      response: {
+        200: TaskSchema,
+        401: Type.Object({ error: Type.String() }),
+        403: Type.Object({ error: Type.String() }),
+        404: Type.Object({ message: Type.String() }),
+      },
+      tags: ['Admin - Tasks'],
+    },
+    handler: async function (request, reply) {
+      const { id } = request.params;
+
+      const updatedTask = await tasksRepository.update(id, request.body);
+
+      if (!updatedTask) {
+        reply.code(404);
+        return { message: 'Task not found' };
+      }
+
+      return updatedTask;
     },
   });
 

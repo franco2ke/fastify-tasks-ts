@@ -14,7 +14,9 @@ export default function (fastify: FastifyInstance) {
 
     if (!hasPermission.success) {
       reply.code(403);
-      return await reply.send({ error: 'Admin access required' });
+      return await reply.send({
+        error: "You don't have permission to access this resource: Admin access required",
+      });
     }
   });
 }

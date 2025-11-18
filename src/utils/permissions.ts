@@ -69,7 +69,7 @@ export const user = ac.newRole({
 // ADMIN: Full access to all resources and task operations
 export const admin = ac.newRole({
   ...adminAc.statements,
-  task: ['create', 'read', 'update', 'delete', 'manage', 'import', 'export'],
+  task: ['create', 'read', 'update', 'delete', 'assign', 'manage', 'import', 'export'],
 });
 
 // MODERATOR: Coordinates work (assign) but cannot modify task content (checks & balances)

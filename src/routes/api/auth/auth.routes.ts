@@ -77,81 +77,6 @@ const authenticationPlugin: FastifyPluginCallbackTypebox = (fastify, _opts, done
     }
   }
 
-  fastify.post('/sign-out', {
-    handler: authHandler,
-  });
-
-  fastify.post('/forgot-password', {
-    schema: {
-      body: Type.Object({
-        email: Type.String({
-          format: 'email',
-          minLength: 1,
-          maxLength: 255,
-        }),
-      }),
-    },
-    handler: async function resetPasswordHandler(request, reply) {
-      // password reset email will be sent at this by Better Auth (requestPasswordReset)
-      const resetPasswordResponse = await fastify.auth.api.requestPasswordReset({
-        body: {
-          email: request.body.email,
-          redirectTo: '/reset-password',
-        },
-      });
-
-      return resetPasswordResponse;
-    },
-  });
-
-  fastify.post('/reset-password', {
-    handler: authHandler,
-  });
-
-  fastify.get('/verify-email', {
-    handler: authHandler,
-  });
-
-  fastify.get('/list-sessions', {
-    handler: authHandler, // ❌
-  });
-
-  fastify.post('/revoke-session', {
-    handler: authHandler, // ✅
-  });
-
-  fastify.post('/revoke-sessions', {
-    handler: authHandler, // ✅
-  });
-
-  // fastify.post("/two-factor/enable", {
-  //   handler: authHandler,
-  // });
-
-  // fastify.post("/two-factor/disable", {
-  //   handler: authHandler,
-  // });
-
-  // fastify.post("/two-factor/verify", {
-  //   handler: authHandler,
-  // });
-
-  fastify.post('/change-email', {
-    handler: authHandler, // ✅
-  });
-
-  fastify.post('/change-password', {
-    handler: authHandler, // ✅
-  });
-
-  fastify.post('/update-user', {
-    handler: authHandler, // ✅
-  });
-
-  fastify.delete('/delete-user', {
-    handler: authHandler, // ❌
-  });
-
   fastify.post('/sign-up/email', {
     schema: {
       body: Type.Object({
@@ -165,6 +90,7 @@ const authenticationPlugin: FastifyPluginCallbackTypebox = (fastify, _opts, done
           maxLength: 255,
         }),
       }),
+      tags: ['Auth'],
     },
     handler: async function signUpHandler(request, reply) {
       const signUpResponse = await fastify.auth.api.signUpEmail({
@@ -195,6 +121,7 @@ const authenticationPlugin: FastifyPluginCallbackTypebox = (fastify, _opts, done
           maxLength: 255,
         }),
       }),
+      tags: ['Auth'],
     },
 
     handler: async function signInHandler(request, reply) {
@@ -215,7 +142,116 @@ const authenticationPlugin: FastifyPluginCallbackTypebox = (fastify, _opts, done
     },
   });
 
+  fastify.post('/sign-out', {
+    schema: {
+      headers: Type.Object({
+        cookie: Type.Optional(
+          Type.String({
+            description: 'Session cookie required for sign-out',
+          }),
+        ),
+      }),
+      tags: ['Auth'],
+    },
+    handler: authHandler,
+  });
+
+  fastify.post('/forgot-password', {
+    schema: {
+      body: Type.Object({
+        email: Type.String({
+          format: 'email',
+          minLength: 1,
+          maxLength: 255,
+        }),
+      }),
+      tags: ['Auth'],
+    },
+    handler: async function resetPasswordHandler(request, reply) {
+      // password reset email will be sent at this by Better Auth (requestPasswordReset)
+      const resetPasswordResponse = await fastify.auth.api.requestPasswordReset({
+        body: {
+          email: request.body.email,
+          redirectTo: '/reset-password',
+        },
+      });
+
+      return resetPasswordResponse;
+    },
+  });
+
+  fastify.post('/reset-password', {
+    schema: {
+      tags: ['Auth'],
+    },
+    handler: authHandler,
+  });
+
+  fastify.get('/verify-email', {
+    schema: {
+      tags: ['Auth'],
+    },
+    handler: authHandler,
+  });
+
+  fastify.get('/list-sessions', {
+    schema: {
+      tags: ['Auth'],
+    },
+    handler: authHandler, // ✅
+  });
+
+  fastify.post('/revoke-session', {
+    schema: {
+      tags: ['Auth'],
+    },
+    handler: authHandler, // ✅
+  });
+
+  fastify.post('/revoke-sessions', {
+    schema: {
+      tags: ['Auth'],
+    },
+    handler: authHandler, // ✅
+  });
+
+  // fastify.post("/two-factor/enable", {
+  //   handler: authHandler,
+  // });
+
+  // fastify.post("/two-factor/disable", {
+  //   handler: authHandler,
+  // });
+
+  // fastify.post("/two-factor/verify", {
+  //   handler: authHandler,
+  // });
+
+  fastify.post('/change-email', {
+    schema: {
+      tags: ['Auth'],
+    },
+    handler: authHandler, // ✅
+  });
+
+  fastify.post('/change-password', {
+    schema: {
+      tags: ['Auth'],
+    },
+    handler: authHandler, // ✅
+  });
+
+  fastify.post('/update-user', {
+    schema: {
+      tags: ['Auth'],
+    },
+    handler: authHandler, // ✅
+  });
+
   fastify.get('/session', {
+    schema: {
+      tags: ['Auth'],
+    },
     handler: async function getSessionHandler(request, reply) {
       const requestHeaders = fastifyHeadersToStandardHeaders(request);
 

@@ -1,10 +1,10 @@
-import { canAssignTasks } from '../../../../utils/task-authorization.js';
 import type { FastifyInstance, FastifyPluginOptions } from 'fastify';
 
 /**
  * Admin tasks autohook - part of a hierarchical permission model
- * Blocks regular users (only those with task:assign or task:manage permissions pass)
- * Allows moderators and admins to pass through
+ * - GET routes: Require task:assign permission (moderators can read all tasks)
+ * - Write routes (PATCH, DELETE, POST): Require task:manage permission (only admins can modify)
+ * - Exception: POST /api/admin/tasks/:id/assign requires task:assign permission (moderators can assign)
  * Protects all /api/admin/tasks/* routes
  *
  * @param fastify
@@ -22,14 +22,66 @@ function adminTaskAutoHooks(fastify: FastifyInstance, _opts: FastifyPluginOption
       return { error: 'You must be logged in to access this resource' };
     }
 
-    const canAccess = await canAssignTasks(fastify, request.session.userId);
+    // Write operations require task:manage permission
+    const writeOperations = ['PATCH', 'DELETE', 'POST'];
 
-    if (!canAccess) {
-      // 403: I know who you are, and you dont have permission to do this.
-      reply.code(403);
-      return await reply.send({
-        error: "You don't have permission to access this resource. Admin or moderator required",
+    if (request.method === 'POST' && /^\/api\/admin\/tasks\/\d+\/assign$/.test(request.url)) {
+      // Exception: assign route only requires task:assign permission
+      const hasAssignPermission = await fastify.auth.api.userHasPermission({
+        body: {
+          userId: request.session.userId,
+          permissions: {
+            task: ['assign'],
+          },
+        },
       });
+
+      if (!hasAssignPermission.success) {
+        reply.code(403);
+        return await reply.send({
+          error: "You don't have permission to access this resource. Admin or moderator required",
+        });
+      }
+
+      return;
+    }
+
+    if (writeOperations.includes(request.method)) {
+      // Admin-only operations
+      const hasManagePermission = await fastify.auth.api.userHasPermission({
+        body: {
+          userId: request.session.userId,
+          permissions: {
+            task: ['manage'],
+          },
+        },
+      });
+
+      // console.log(request);
+
+      if (!hasManagePermission.success) {
+        reply.code(403);
+        return await reply.send({
+          error: "You don't have permission to access this resource. Admin required",
+        });
+      }
+    } else {
+      // Read operations (GET) - both moderators and admins can access
+      const hasAssignPermission = await fastify.auth.api.userHasPermission({
+        body: {
+          userId: request.session.userId,
+          permissions: {
+            task: ['assign'],
+          },
+        },
+      });
+
+      if (!hasAssignPermission.success) {
+        reply.code(403);
+        return await reply.send({
+          error: "You don't have permission to access this resource. Admin or moderator required",
+        });
+      }
     }
   });
 }

@@ -62,6 +62,7 @@ export const ac = createAccessControl(statement);
 
 // USER: Can manage their own tasks with full CRUD + export + import
 export const user = ac.newRole({
+  ...userAc.statements,
   task: ['create', 'read', 'update', 'delete', 'export', 'import'],
 });
 

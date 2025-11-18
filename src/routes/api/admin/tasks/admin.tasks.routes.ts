@@ -101,6 +101,40 @@ const plugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
     },
   });
 
+  // NOTE: Assign/Unassign Task Route
+  fastify.post('/:id/assign', {
+    schema: {
+      params: Type.Object({
+        id: Type.Number(),
+      }),
+      body: Type.Object({
+        assigned_user_id: Type.Union([Type.String(), Type.Null()]),
+      }),
+      response: {
+        200: TaskSchema,
+        401: Type.Object({ error: Type.String() }),
+        402: Type.Object({ error: Type.String() }),
+        404: Type.Object({ message: Type.String() }),
+      },
+      tags: ['Admin - Tasks'],
+    },
+    handler: async function (request, reply) {
+      const { id } = request.params;
+      const assignedUserId = request.body.assigned_user_id;
+
+      const updatedTask = await tasksRepository.update(id, {
+        assigned_user_id: assignedUserId ?? undefined,
+      });
+
+      if (!updatedTask) {
+        reply.code(404);
+        return { message: 'Task not found' };
+      }
+
+      return updatedTask;
+    },
+  });
+
   // NOTE: DELETE /api/admin/tasks/:id - Delete any task (admins only)
   fastify.delete('/:id', {
     schema: {

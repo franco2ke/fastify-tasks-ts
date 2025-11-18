@@ -103,10 +103,10 @@ const administrationPlugin: FastifyPluginCallbackTypebox = (fastify, _opts, done
         }),
         // FIXME: Find a way to automatically extract role types from better-auth
         role: Type.Union([
-          Type.Literal('user'),
-          // Type.Literal('moderator'),
-          Type.Literal('admin'),
-          // Type.Literal('super-admin'),
+          Type.Union([Type.Literal('user'), Type.Literal('moderator'), Type.Literal('admin')]),
+          Type.Array(
+            Type.Union([Type.Literal('user'), Type.Literal('moderator'), Type.Literal('admin')]),
+          ),
         ]),
       }),
       tags: ['Admin - User management'],

@@ -16,7 +16,10 @@ declare module 'fastify' {
 }
 
 // Derived Types
-type CreateTask = Static<typeof CreateTaskSchema> & { author_id: string };
+type CreateTask = Static<typeof CreateTaskSchema> & {
+  author_id: string;
+  assigned_user_id: string | undefined;
+};
 type TaskQuery = Static<typeof AdminQueryTaskPaginationSchema>;
 type UpdateTask = Static<typeof AdminUpdateTaskSchema>;
 export type UploadTask = CreateTask & { status?: string };

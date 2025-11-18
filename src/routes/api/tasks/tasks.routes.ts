@@ -5,7 +5,6 @@ import {
   TaskSchema,
   UpdateTaskSchema,
 } from '../../../schemas/tasks.js';
-import { canAssignTaskTo } from '../../../utils/task-authorization.js';
 import { type FastifyPluginCallbackTypebox, Type } from '@fastify/type-provider-typebox';
 
 const plugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
@@ -44,22 +43,10 @@ const plugin: FastifyPluginCallbackTypebox = (fastify, _opts, done) => {
         return { error: 'Incorrect task information, fill title / description fields' };
       }
 
-      //
-      const canAssign = await canAssignTaskTo(
-        fastify,
-        session.userId,
-        request.body.assigned_user_id,
-      );
-
-      if (!canAssign) {
-        reply.code(403);
-        return { error: 'Regular users can only assign tasks to themselves' };
-      }
-
       const id = await tasksRepository.create({
         title: request.body.title,
         description: request.body.description,
-        assigned_user_id: request.body.assigned_user_id,
+        assigned_user_id: session.userId,
         author_id: session.userId,
       });
 

@@ -46,7 +46,6 @@ export const TaskSchema = Type.Object({
 export const CreateTaskSchema = Type.Object({
   title: StringSchema,
   description: StringSchema,
-  assigned_user_id: Type.Optional(IdSchema),
 });
 
 // update validation

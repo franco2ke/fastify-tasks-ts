@@ -1,8 +1,8 @@
 import type {
+  AdminQueryTaskPaginationSchema,
+  AdminUpdateTaskSchema,
   CreateTaskSchema,
-  QueryTaskPaginationSchema,
   Task,
-  UpdateTaskSchema,
 } from '../../schemas/tasks.js';
 import type { ReturnType, Static } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
@@ -16,9 +16,12 @@ declare module 'fastify' {
 }
 
 // Derived Types
-type CreateTask = Static<typeof CreateTaskSchema> & { author_id: string };
-type TaskQuery = Static<typeof QueryTaskPaginationSchema>;
-type UpdateTask = Static<typeof UpdateTaskSchema>;
+type CreateTask = Static<typeof CreateTaskSchema> & {
+  author_id: string;
+  assigned_user_id: string | undefined;
+};
+type TaskQuery = Static<typeof AdminQueryTaskPaginationSchema>;
+type UpdateTask = Static<typeof AdminUpdateTaskSchema>;
 export type UploadTask = CreateTask & { status?: string };
 
 function createRepository(fastify: FastifyInstance) {
@@ -219,12 +222,94 @@ function createRepository(fastify: FastifyInstance) {
       }
     },
 
-    async delete(id: number) {
+    async updateWithOwnershipCheck(
+      id: number,
+      userId: string,
+      changes: UpdateTask,
+    ): Promise<Task | null> {
       const client = await fastify.pg.connect();
 
       try {
-        const result = await client.query('DELETE FROM tasks WHERE id = $1', [id]);
-        return (result.rowCount ?? 0) > 0;
+        const setClauses: string[] = [];
+        const queryParams: Array<string | number> = [];
+        let paramIndex = 1;
+
+        // Build SET clauses
+        if (changes.title !== undefined) {
+          setClauses.push(`title = $${paramIndex}`);
+          queryParams.push(changes.title);
+          paramIndex += 1;
+        }
+
+        if (changes.description !== undefined) {
+          setClauses.push(`description = $${paramIndex}`);
+          queryParams.push(changes.description);
+          paramIndex += 1;
+        }
+
+        if (changes.status !== undefined) {
+          setClauses.push(`status = $${paramIndex}`);
+          queryParams.push(changes.status);
+          paramIndex += 1;
+        }
+
+        // Edge case: If no fields to update, just verify ownership and return existing task
+        if (setClauses.length === 0) {
+          const task = await this.findById(id, client);
+          // Return task only if user owns it or is assigned to it
+          return task?.author_id === userId || task?.assigned_user_id === userId ? task : null;
+        }
+
+        // Update timestamp
+        setClauses.push(`updated_at = NOW()`);
+        // Add WHERE clause parameters
+        queryParams.push(id, userId, userId);
+
+        // one query, to check ownership, update task and return updated task immediately, instead of three queries.
+        const query = `
+          UPDATE tasks
+          SET ${setClauses.join(', ')}
+          WHERE id = $${paramIndex} 
+          AND (author_id = $${paramIndex + 1} OR assigned_user_id = $${paramIndex + 2})
+          RETURNING *
+        `;
+
+        const result = await client.query<Task>(query, queryParams);
+        // Returns null if either: (attackers cant discover which task IDs exist)
+        // - Task doesn't exist, OR
+        // - User doesn't own/isn't assigned to the task
+        return result.rows[0] ?? null;
+      } finally {
+        client.release();
+      }
+    },
+
+    async delete(id: number): Promise<Task | null> {
+      const client = await fastify.pg.connect();
+
+      try {
+        const result = await client.query<Task>('DELETE FROM tasks WHERE id = $1 Returning *', [
+          id,
+        ]);
+        return result.rows[0] ?? null;
+      } finally {
+        client.release();
+      }
+    },
+
+    async deleteWithOwnershipCheck(id: number, userId: string): Promise<Task | null> {
+      const client = await fastify.pg.connect();
+
+      const query = `
+            DELETE FROM tasks
+            WHERE id = $1 AND (author_id = $2 OR assigned_user_id = $2)
+            RETURNING *`;
+
+      const params = [id, userId];
+
+      try {
+        const result = await client.query<Task>(query, params);
+        return result.rows[0] ?? null;
       } finally {
         client.release();
       }

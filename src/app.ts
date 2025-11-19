@@ -38,7 +38,7 @@ export default async function app(fastify: FastifyInstance, opts: FastifyPluginO
 
   // Set the global error handler & prevent leaking internal implementation info
   // NOTE: catches any error not explicitly caught in the code, security best practice
-  fastify.setErrorHandler(async (err, request, reply) => {
+  fastify.setErrorHandler(async (err: unknown, request, reply) => {
     fastify.log.error(
       {
         err,
@@ -53,14 +53,25 @@ export default async function app(fastify: FastifyInstance, opts: FastifyPluginO
       'Unhandled error occurred',
     );
 
-    reply.code(err.statusCode ?? 500);
+    // Type predicate to check if err is a proper error object
+    function isErrorObject(err: unknown): err is { statusCode: number; message: string } {
+      return (
+        typeof err === 'object' &&
+        err !== null &&
+        'statusCode' in err &&
+        typeof err.statusCode === 'number' &&
+        'message' in err &&
+        typeof err.message === 'string'
+      );
+    }
+
+    const statusCode = isErrorObject(err) ? err.statusCode : 500;
+
+    reply.code(statusCode);
 
     // hides sensitive details for server errors (5xx)
     // shows actual message for client errors (4xx) e.g. validation failures
-    let message = 'Internal Server Error';
-    if (typeof err.statusCode === 'number' && err.statusCode < 500) {
-      message = err.message;
-    }
+    const message = isErrorObject(err) && statusCode < 500 ? err.message : 'Internal Server Error';
 
     return { message };
   });

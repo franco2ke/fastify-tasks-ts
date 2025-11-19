@@ -100,7 +100,7 @@ const fileTasksRoutes: FastifyPluginAsyncTypebox = async function (fastify, _opt
           error: Type.String(),
         }),
       },
-      tags: ['Task Imports & Exports'],
+      tags: ['Tasks'],
     },
     onRequest: [fastify.authenticate.bind(fastify)],
     handler: async function createTasks(request, reply) {
@@ -153,7 +153,7 @@ const fileTasksRoutes: FastifyPluginAsyncTypebox = async function (fastify, _opt
     url: '/export',
     schema: {
       querystring: QueryTaskPaginationSchema,
-      tags: ['Task Imports & Exports'],
+      tags: ['Tasks'],
     },
     onRequest: [fastify.authenticate.bind(fastify)],
     handler: async function exportTasks(request, reply) {
@@ -193,8 +193,8 @@ const fileTasksRoutes: FastifyPluginAsyncTypebox = async function (fastify, _opt
         ? request.query
         : {
             ...request.query,
-            author_id: request.query.author_id ?? session.userId,
-            assigned_user_id: request.query.assigned_user_id ?? session.userId,
+            author_id: session.userId,
+            assigned_user_id: session.userId,
           };
 
       const { tasks } = await this.tasksRepository.paginate({

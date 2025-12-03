@@ -55,7 +55,7 @@
     "eslint": "^9.39.1",
     "eslint-config-love": "^133.0.0",
     "fastify-tsconfig": "^3.0.0",
-    "prettier": "3.6.2",
+    "prettier": "3.7.4",
     "typescript": "~5.9.3"
   }
 }
